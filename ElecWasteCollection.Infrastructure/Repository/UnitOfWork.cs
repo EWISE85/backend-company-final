@@ -1,0 +1,114 @@
+﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using ElecWasteCollection.Domain.Entities;
+using ElecWasteCollection.Domain.IRepository;
+using ElecWasteCollection.Infrastructure.Context;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Infrastructure.Repository
+{
+    public class UnitOfWork : IUnitOfWork
+    {
+        private readonly ElecWasteCollectionDbContext _context;
+
+        public IGenericRepository<User> Users { get; }
+        public IGenericRepository<Company> Companies { get; }
+        public IGenericRepository<Products> Products { get; }
+        public IGenericRepository<Post> Posts { get; }
+        public IGenericRepository<UserAddress> UserAddresses { get; }
+        public IGenericRepository<Category> Categories { get; }
+        public IGenericRepository<Brand> Brands { get; }
+        public IGenericRepository<ProductValues> ProductValues { get; }
+        public IGenericRepository<AttributeOptions> AttributeOptions { get; }
+        public IGenericRepository<Attributes> Attributes { get; }
+		public IGenericRepository<Account> Accounts { get; }
+        public IGenericRepository<CategoryAttributes> CategoryAttributes { get; }
+		public IGenericRepository<CollectionRoutes> CollecctionRoutes { get; }
+		public IGenericRepository<Packages> Packages { get; }
+		public IGenericRepository<PointTransactions> PointTransactions { get; }
+		public IGenericRepository<ProductImages> ProductImages { get; }
+		public IGenericRepository<ProductStatusHistory> ProductStatusHistory { get; }
+		public IGenericRepository<Shifts> Shifts { get; }
+		public IGenericRepository<Vehicles> Vehicles { get; }
+		public IGenericRepository<ForgotPassword> ForgotPasswords { get; }
+		public IGenericRepository<SystemConfig> SystemConfig { get; }
+		public IGenericRepository<UserDeviceToken> UserDeviceTokens { get; }
+		public IGenericRepository<Notifications> Notifications { get; }
+        public IGenericRepository<CollectionGroups> CollectionGroupGeneric { get; }
+        public IGenericRepository<CompanyRecyclingCategory> CompanyRecyclingCategories { get; }
+        public ICollectionGroupRepository CollectionGroups { get; }
+		public IGenericRepository<PackageStatusHistory> PackageStatusHistory { get; }
+		public IGenericRepository<BrandCategory> BrandCategories { get; }
+
+        public IGenericRepository<Voucher> Vouchers { get; }
+
+		public IGenericRepository<UserVoucher> UserVouchers { get; }
+        public IGenericRepository<Rank> Ranks { get; }
+
+		public IGenericRepository<PublicHoliday> PublicHolidays { get; }
+
+        public IGenericRepository<UserReport> UserReports { get; }
+        public IGenericRepository<CollectionOffDay> CollectionOffDays { get; }
+        public IGenericRepository<SmallCollectionPoints> SmallCollectionPoints { get; }
+
+        public IGenericRepository<UserToken> UserTokens { get; }
+
+        public UnitOfWork(ElecWasteCollectionDbContext context)
+        {
+            _context = context;
+
+            Users = new GenericRepository<User>(_context);
+            Companies = new GenericRepository<Company>(_context);
+            Products = new GenericRepository<Products>(_context);
+            Posts = new GenericRepository<Post>(_context);
+            UserAddresses = new GenericRepository<UserAddress>(_context);
+            Categories = new GenericRepository<Category>(_context);
+            Brands = new GenericRepository<Brand>(_context);
+            ProductValues = new GenericRepository<ProductValues>(_context);
+            AttributeOptions = new GenericRepository<AttributeOptions>(_context);
+            Attributes = new GenericRepository<Attributes>(_context);
+			Accounts = new GenericRepository<Account>(_context);
+			CategoryAttributes = new GenericRepository<CategoryAttributes>(_context);
+			CollecctionRoutes = new GenericRepository<CollectionRoutes>(_context);
+			Packages = new GenericRepository<Packages>(_context);
+			PointTransactions = new GenericRepository<PointTransactions>(_context);
+			ProductImages = new GenericRepository<ProductImages>(_context);
+			ProductStatusHistory = new GenericRepository<ProductStatusHistory>(_context);
+			Shifts = new GenericRepository<Shifts>(_context);
+			Vehicles = new GenericRepository<Vehicles>(_context);
+			ForgotPasswords = new GenericRepository<ForgotPassword>(_context);
+			SystemConfig = new GenericRepository<SystemConfig>(_context);
+            CollectionGroupGeneric = new GenericRepository<CollectionGroups>(_context);
+            CollectionGroups = new CollectionGroupRepository(_context);
+            UserDeviceTokens = new GenericRepository<UserDeviceToken>(_context);
+			Notifications = new GenericRepository<Notifications>(_context);
+            CollectionGroupGeneric = new GenericRepository<CollectionGroups>(_context);
+            CollectionGroups = new CollectionGroupRepository(_context);
+            PackageStatusHistory = new GenericRepository<PackageStatusHistory>(_context);
+            CompanyRecyclingCategories = new GenericRepository<CompanyRecyclingCategory>(_context);
+			BrandCategories = new GenericRepository<BrandCategory>(_context);
+			Vouchers = new GenericRepository<Voucher>(_context);
+			UserVouchers = new GenericRepository<UserVoucher>(_context);
+            Ranks = new GenericRepository<Rank>(_context);
+			PublicHolidays = new GenericRepository<PublicHoliday>(_context);
+			UserReports = new GenericRepository<UserReport>(_context);
+            CollectionOffDays = new GenericRepository<CollectionOffDay>(_context);
+            SmallCollectionPoints = new GenericRepository<SmallCollectionPoints>(_context);
+            UserTokens = new GenericRepository<UserToken>(_context); 
+
+		}
+
+		public async Task<int> SaveAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
+
+        public void Dispose()
+        {
+            _context.Dispose();
+        }
+    }
+}

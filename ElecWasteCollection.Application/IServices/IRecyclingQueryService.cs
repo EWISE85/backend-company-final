@@ -1,0 +1,15 @@
+﻿using ElecWasteCollection.Application.Model;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Application.IServices
+{
+    public interface IRecyclingQueryService
+    {
+        Task<List<RecyclerCollectionTaskDto>> GetPackagesToCollectAsync(string recyclingCompanyId);
+		Task<PagedResultModel<PackageDetailModel>> GetPackagesByRecyclerFilterAsync(RecyclerPackageFilterModel query);
+    }
+}

@@ -1,0 +1,43 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Domain.Entities
+{
+    public enum PointTransactionType
+    {
+        [Description("Tích điểm")]
+        TICH_DIEM, // Thay cho Earned
+
+        [Description("Đổi điểm")]
+        DOI_DIEM,   // Thay cho Redeemed
+		[Description("Điều chỉnh điểm")]
+		DIEU_CHINH // Thêm loại này để xử lý sai sót
+	}
+    public class PointTransactions
+	{
+		public Guid PointTransactionId { get; set; }
+
+		public Guid? ProductId { get; set; }
+
+		public Guid? VoucherId { get; set; }
+
+		public Guid UserId { get; set; }
+		public string Desciption { get; set; }
+
+		public string TransactionType { get; set; }
+
+		public double Point { get; set; }
+
+		public DateTime CreatedAt { get; set; }
+
+		public Products Product { get; set; }
+
+		public User User { get; set; }
+
+		public Voucher Voucher { get; set; }
+	}
+}

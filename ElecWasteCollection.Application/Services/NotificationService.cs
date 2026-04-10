@@ -1,0 +1,457 @@
+﻿using DocumentFormat.OpenXml.Wordprocessing;
+using ElecWasteCollection.Application.Exceptions;
+using ElecWasteCollection.Application.IServices;
+using ElecWasteCollection.Application.Model;
+using ElecWasteCollection.Domain.Entities;
+using ElecWasteCollection.Domain.IRepository;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Application.Services
+{
+	public class NotificationService : INotificationService
+	{
+		private readonly IFirebaseService _firebaseService;
+		private readonly IServiceScopeFactory _scopeFactory;
+		private readonly IUnitOfWork _unitOfWork;
+		private readonly INotificationRepository _notificationRepository;
+		public NotificationService(IFirebaseService firebaseService, IUnitOfWork unitOfWork, IServiceScopeFactory serviceScopeFactory, INotificationRepository notificationRepository)
+		{
+			_firebaseService = firebaseService;
+			_unitOfWork = unitOfWork;
+			_scopeFactory = serviceScopeFactory;
+			_notificationRepository = notificationRepository;
+		}
+
+		public async Task<List<NotificationModel>> GetNotificationByUserIdAsync(Guid userId)
+		{
+			var notifications = await _unitOfWork.Notifications.GetsAsync(n => n.UserId == userId);
+			if (notifications == null || !notifications.Any())
+			{
+				return new List<NotificationModel>();
+			}
+			var result = notifications.Select(n => new NotificationModel
+			{
+				NotificationId = n.NotificationId,
+				Title = n.Title,
+				Message = n.Body,
+				IsRead = n.IsRead,
+				CreatedAt = n.CreatedAt,
+				UserId = n.UserId
+			}).OrderByDescending(n => n.CreatedAt).ToList();
+			return result;
+		}
+
+		public async Task<List<NotificationModel>> GetNotificationTypeEvent()
+		{
+			// 1. Lấy tất cả thông báo có Type là Event
+			var notifications = await _unitOfWork.Notifications.GetsAsync(n => n.Type == NotificationType.Event.ToString());
+
+			if (notifications == null || !notifications.Any())
+			{
+				return new List<NotificationModel>();
+			}
+
+			// 2. GOM NHÓM THEO EVENT ID
+			var result = notifications
+				.GroupBy(n => n.EventId)
+				.Select(group => group.First())
+				.Select(n => new NotificationModel
+				{
+					NotificationId = n.NotificationId, 
+					Title = n.Title,
+					Message = n.Body,
+					IsRead = false, 
+					CreatedAt = n.CreatedAt,
+					UserId = n.UserId 
+				})
+				.OrderByDescending(n => n.CreatedAt) 
+				.ToList();
+
+			return result;
+		}
+
+		public async Task NotifyCustomerArrivalAsync(Guid productId)
+		{
+			var product = await _unitOfWork.Products.GetAsync(p => p.ProductId == productId, includeProperties: "Category");
+			if (product == null) throw new AppException("Không tìm thấy sản phẩm", 404);
+			string productName = product.Category?.Name ?? "sản phẩm";
+			string title = "Shipper sắp đến!";
+			string body = $"Tài xế đang ở rất gần để thu gom '{productName}'. Vui lòng chuẩn bị."; 
+			var dataPayload = new Dictionary<string, string>
+			{
+				{ "type", "SHIPPER_ARRIVAL" },
+				{ "productId", product.ProductId.ToString() },
+			};
+			var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == product.UserId);
+
+			if (userTokens != null && userTokens.Any())
+			{
+				var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+				await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+			}
+			var notification = new Notifications
+			{
+				NotificationId = Guid.NewGuid(),
+				UserId = product.UserId,
+				Title = title,
+				Body = body,
+				IsRead = false,
+				CreatedAt = DateTime.UtcNow,
+				Type = NotificationType.System.ToString()
+			};
+
+			await _unitOfWork.Notifications.AddAsync(notification);
+			await _unitOfWork.SaveAsync();
+		}
+
+		public async Task NotifyCustomerCallAsync(Guid routeId, Guid userId)
+		{
+			var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == userId);
+			string title = "Cuộc gọi từ tài xế!";
+			string body = "Tài xế đang cố gắng liên lạc với bạn. Vui lòng kiểm tra cuộc gọi.";
+			var dataPayload = new Dictionary<string, string>
+			{
+				{ "type", "COLLECTOR_CALL" },
+				{ "routeId", routeId.ToString() },
+			};
+			if (userTokens != null && userTokens.Any())
+			{
+				var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+				await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+			}
+			var notification = new Notifications
+			{
+				NotificationId = Guid.NewGuid(),
+				UserId = userId,
+				Title = title,
+				Body = body,
+				IsRead = false,
+				CreatedAt = DateTime.UtcNow,
+				Type = NotificationType.System.ToString()
+
+			};
+			await _unitOfWork.Notifications.AddAsync(notification);
+			await _unitOfWork.SaveAsync();
+		}
+
+		public async Task<bool> ReadNotificationAsync(List<Guid> notificationIds)
+		{
+			var notifications = await _unitOfWork.Notifications.GetsAsync(n => notificationIds.Contains(n.NotificationId));
+			if (notifications == null || !notifications.Any()) throw new AppException("Không tìm thấy thông báo", 404);
+			foreach (var notification in notifications)
+			{
+				notification.IsRead = true;
+				_unitOfWork.Notifications.Update(notification);
+			}
+			await _unitOfWork.SaveAsync();
+			return true;
+		}
+
+		public async Task SendNotificationToUser(SendNotificationToUserModel model)
+		{
+			var eventId = Guid.NewGuid();
+			var userBatchSize = 500;
+			var userIdBatches = model.UserIds.Chunk(userBatchSize);
+			foreach (var batch in userIdBatches)
+			{
+				foreach (var userId in batch)
+				{
+					var notification = new Notifications
+					{
+						NotificationId = Guid.NewGuid(),
+						UserId = userId,
+						Title = model.Title,
+						Body = model.Message,
+						CreatedAt = DateTime.UtcNow,
+						IsRead = false,
+						Type = NotificationType.Event.ToString(),
+						EventId = eventId
+					};
+					await _unitOfWork.Notifications.AddAsync(notification);
+				}
+				await _unitOfWork.SaveAsync();
+			}
+			var allTokens = new List<string>();
+			foreach (var batch in model.UserIds.Chunk(1000))
+			{
+				var tokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => batch.Contains(udt.UserId));
+				if (tokens != null)
+				{
+					allTokens.AddRange(tokens.Select(t => t.FCMToken));
+				}
+			}
+			if (allTokens.Any())
+			{
+				_ = Task.Run(async () =>
+				{
+					// Tạo một Scope mới vì đây là luồng độc lập
+					using (var scope = _scopeFactory.CreateScope())
+					{
+						var scopedUnitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+						var scopedFirebase = scope.ServiceProvider.GetRequiredService<IFirebaseService>();
+
+						try
+						{
+							var fcmBatches = allTokens.Distinct().Chunk(500);
+							foreach (var fcmBatch in fcmBatches)
+							{
+								// Lấy danh sách token bị lỗi từ Firebase
+								var failedTokens = await scopedFirebase.SendMulticastAsync(fcmBatch.ToList(), model.Title, model.Message);
+
+								if (failedTokens.Any())
+								{
+									var entitiesToDelete = await scopedUnitOfWork.UserDeviceTokens.GetsAsync(t => failedTokens.Contains(t.FCMToken));
+									foreach (var entity in entitiesToDelete)
+									{
+										scopedUnitOfWork.UserDeviceTokens.Delete(entity);
+									}
+									await scopedUnitOfWork.SaveAsync();
+									Console.WriteLine($"[Cleanup] Đã xóa {failedTokens.Count} token hết hạn.");
+								}
+							}
+						}
+						catch (Exception ex)
+						{
+							Console.WriteLine($"[Background Cleanup Error]: {ex.Message}");
+						}
+					}
+				});
+			}
+		}
+
+		public async Task ProcessApprovalNotificationsAsync(List<Post> approvedPosts)
+		{
+			foreach (var post in approvedPosts)
+			{
+				string title = "Bài đăng được duyệt!";
+				string body = "Bài đăng yêu cầu thu gom rác điện tử của bạn đã được phê duyệt thành công.";
+
+				var dataPayload = new Dictionary<string, string>
+		{
+			{ "type", "POST_APPROVED" },
+			{ "postId", post.PostId.ToString() }
+		};
+
+				// Lấy Token của người đăng bài
+				var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == post.SenderId);
+
+				// Gửi qua Firebase
+				if (userTokens != null && userTokens.Any())
+				{
+					var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+					await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+				}
+
+				// Tạo bản ghi Notification để lưu vào DB
+				var notification = new Notifications
+				{
+					NotificationId = Guid.NewGuid(),
+					UserId = post.SenderId,
+					Title = title,
+					Body = body,
+					IsRead = false,
+					CreatedAt = DateTime.UtcNow,
+					Type = NotificationType.System.ToString()
+				};
+
+				// Chỉ AddAsync vào UnitOfWork, việc SaveAsync sẽ do hàm ApprovePost đảm nhận
+				await _unitOfWork.Notifications.AddAsync(notification);
+			}
+		}
+		public async Task ProcessRejectionNotificationsAsync(List<Post> rejectedPosts, string reason)
+		{
+			foreach (var post in rejectedPosts)
+			{
+				string title = "Bài đăng bị từ chối";
+				string body = $"Bài đăng yêu cầu thu gom của bạn không được duyệt. Lý do: {reason}. Vui lòng kiểm tra lại.";
+
+				var dataPayload = new Dictionary<string, string>
+		{
+			{ "type", "POST_REJECTED" },
+			{ "postId", post.PostId.ToString() }
+		};
+
+				var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == post.SenderId);
+
+				if (userTokens != null && userTokens.Any())
+				{
+					var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+					await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+				}
+
+				var notification = new Notifications
+				{
+					NotificationId = Guid.NewGuid(),
+					UserId = post.SenderId,
+					Title = title,
+					Body = body,
+					IsRead = false,
+					CreatedAt = DateTime.UtcNow,
+					Type = NotificationType.System.ToString()
+				};
+
+				await _unitOfWork.Notifications.AddAsync(notification);
+			}
+		}
+
+		// Thêm tham số optional cho oldRankName và newRankName
+		public async Task NotifyCustomerCO2SavedAsync(Guid userId, double co2Saved, double totalCo2, string oldRankName = null, string newRankName = null)
+		{
+			var title = "Bạn đã tiết kiệm được CO2!";
+			var body = $"Bạn đã tiết kiệm được {co2Saved:F2} kg CO2 từ việc tái chế rác điện tử. Cảm ơn bạn đã góp phần bảo vệ môi trường!";
+
+			var dataPayload = new Dictionary<string, string>
+	{
+		{ "type", "CO2_SAVED" },
+		{ "co2Amount", co2Saved.ToString("F2") }
+	};
+
+			if (!string.IsNullOrEmpty(oldRankName) && !string.IsNullOrEmpty(newRankName))
+			{
+				dataPayload.Add("isRankUp", "true");
+				dataPayload.Add("oldRankName", oldRankName);
+				dataPayload.Add("newRankName", newRankName);
+				dataPayload.Add("totalCo2", $"Bạn đã tiết kiệm được tổng cộng {totalCo2} cho đến hiện tại");
+			}
+
+			var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == userId);
+
+			if (userTokens != null && userTokens.Any())
+			{
+				var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+
+				var failedTokens = await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+
+				if (failedTokens != null && failedTokens.Any())
+				{
+					var tokensToDelete = userTokens.Where(t => failedTokens.Contains(t.FCMToken)).ToList();
+
+					foreach (var invalidToken in tokensToDelete)
+					{
+						_unitOfWork.UserDeviceTokens.Delete(invalidToken);
+					}
+				}
+			}
+
+			var notification = new Notifications
+			{
+				NotificationId = Guid.NewGuid(),
+				UserId = userId,
+				Title = title,
+				Body = body,
+				IsRead = false,
+				CreatedAt = DateTime.UtcNow,
+				Type = NotificationType.System.ToString()
+			};
+
+			await _unitOfWork.Notifications.AddAsync(notification);
+			await _unitOfWork.SaveAsync();
+		}
+
+		public async Task SendNotificationForUserWhenReportAnswerd(Guid userId)
+		{
+			var title = "Khiếu nại đã được trả lời!";
+			var body = "Khiếu nại của bạn đã được trả lời. Vui lòng kiểm tra để xem chi tiết.";
+
+			var dataPayload = new Dictionary<string, string>
+			{
+				{ "type", "REPORT_ANSWERED" }
+			};
+
+			var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == userId);
+
+			if (userTokens != null && userTokens.Any())
+			{
+				var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+				await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+			}
+
+			var notification = new Notifications
+			{
+				NotificationId = Guid.NewGuid(),
+				UserId = userId,
+				Title = title,
+				Body = body,
+				IsRead = false,
+				CreatedAt = DateTime.UtcNow,
+				Type = NotificationType.System.ToString()
+			};
+
+			await _unitOfWork.Notifications.AddAsync(notification);
+			await _unitOfWork.SaveAsync();
+		}
+		// Đổi DateTime thành DateOnly ở tham số truyền vào
+		public async Task NotifyScheduleConfirmedAsync(Dictionary<Guid, (DateOnly Date, string Time)> userSchedules)
+		{
+			if (userSchedules == null || !userSchedules.Any()) return;
+
+			string title = "Lịch thu gom đã được xác nhận!";
+			var dataPayload = new Dictionary<string, string>
+	{
+		{ "type", "SHIPPER_ARRIVAL" }
+	};
+
+			foreach (var kvp in userSchedules)
+			{
+				var userId = kvp.Key;
+				// Hàm ToString("dd/MM/yyyy") vẫn hoạt động bình thường với DateOnly
+				var dateStr = kvp.Value.Date.ToString("dd/MM/yyyy");
+				var timeStr = kvp.Value.Time;
+
+				string body = $"Đơn thu gom của bạn đã được lên lịch. Dự kiến tài xế sẽ đến vào khoảng {timeStr} ngày {dateStr}. Vui lòng chuẩn bị rác điện tử nhé!";
+
+				// 1. Gửi Firebase
+				var userTokens = await _unitOfWork.UserDeviceTokens.GetsAsync(udt => udt.UserId == userId);
+				if (userTokens != null && userTokens.Any())
+				{
+					var tokens = userTokens.Select(d => d.FCMToken).Distinct().ToList();
+					await _firebaseService.SendMulticastAsync(tokens, title, body, dataPayload);
+				}
+
+				// 2. Lưu log DB
+				var notification = new Notifications
+				{
+					NotificationId = Guid.NewGuid(),
+					UserId = userId,
+					Title = title,
+					Body = body,
+					IsRead = false,
+					CreatedAt = DateTime.UtcNow,
+					Type = NotificationType.System.ToString()
+				};
+				await _unitOfWork.Notifications.AddAsync(notification);
+			}
+
+			await _unitOfWork.SaveAsync();
+		}
+
+		public async Task<PagedResultModel<NotificationModel>> GetPagedUserNotification(Guid userId, int page, int limit)
+		{
+			var (items, totalCount) = await _notificationRepository.GetPagedNotificationForUser(userId,page,limit);
+			var resultItems = items
+				.OrderByDescending(n => n.CreatedAt)
+				.Select(n => new NotificationModel
+			{
+				NotificationId = n.NotificationId,
+				Title = n.Title,
+				Message = n.Body,
+				IsRead = n.IsRead,
+				CreatedAt = n.CreatedAt,
+				UserId = n.UserId
+			}).ToList();
+			return new PagedResultModel<NotificationModel>(resultItems, page, limit, totalCount);
+
+		}
+
+		public async Task<int> GetUnreadNotificationByUser(Guid userId)
+		{
+			var unreadCount = await _unitOfWork.Notifications.GetsAsync(n => n.UserId == userId && !n.IsRead);
+			return unreadCount?.Count() ?? 0;
+		}
+	}
+}

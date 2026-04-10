@@ -1,0 +1,41 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Domain.Entities
+{
+	public enum CategoryStatus
+	{
+		[Description("Hoạt động")]
+		HOAT_DONG,
+		[Description("Không hoạt động")]
+		KHONG_HOAT_DONG
+	}
+	public class Category
+	{
+		public Guid CategoryId { get; set; }
+
+		public string Name { get; set; }
+
+		public Guid? ParentCategoryId { get; set; }
+		public double DefaultWeight { get; set; } = 0.0;
+		public double EmissionFactor { get; set; } = 0.0;
+		public string? AiRecognitionTags { get; set; }
+		public  Category ParentCategory { get; set; }
+
+		public string Status { get; set; } = CategoryStatus.HOAT_DONG.ToString();
+
+		public virtual ICollection<CategoryAttributes> CategoryAttributes { get; set; }
+
+		public virtual ICollection<Category> SubCategories { get; set; }
+
+		public virtual ICollection<Products> Products { get; set; }
+
+		public virtual ICollection<CompanyRecyclingCategory> CompanyRecyclingCategories { get; set; }
+		public virtual ICollection<BrandCategory> BrandCategories { get; set; } = new List<BrandCategory>();
+
+	}
+}

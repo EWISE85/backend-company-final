@@ -1,0 +1,25 @@
+﻿using ElecWasteCollection.Domain.Entities;
+using ElecWasteCollection.Domain.IRepository;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ElecWasteCollection.Infrastructure.Repository
+{
+	public class UserDeviceTokenRepository : GenericRepository<UserDeviceToken>, IUserDeviceTokenRepository
+	{
+		public UserDeviceTokenRepository(DbContext context) : base(context)
+		{
+		}
+
+		public Task<List<string>> GetTokensByUserIdsAsync(List<Guid> userIds)
+		{
+			var query = _dbSet.AsNoTracking().AsSplitQuery();
+			query = query.Where(udt => userIds.Contains(udt.UserId));
+			return query.Select(udt => udt.FCMToken).ToListAsync();
+		}
+	}
+}
