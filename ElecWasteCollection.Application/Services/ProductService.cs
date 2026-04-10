@@ -28,7 +28,8 @@ namespace ElecWasteCollection.Application.Services
 		private readonly IAttributeOptionRepository _attributeOptionRepository;
 		private readonly IPackageRepository _packageRepository;
         private readonly CapacityHelper _capacityHelper;
-        public ProductService(IProductRepository productRepository, IUnitOfWork unitOfWork, IProductImageRepository productImageRepository, IPointTransactionService pointTransactionService, IBrandRepository brandRepository, ICategoryRepository categoryRepository, IProductStatusHistoryRepository productStatusHistoryRepository, IAttributeOptionRepository attributeOptionRepository, IPackageRepository packageRepository, CapacityHelper capacityHelper)
+		private readonly IRankService _rankService;
+		public ProductService(IProductRepository productRepository, IUnitOfWork unitOfWork, IProductImageRepository productImageRepository, IPointTransactionService pointTransactionService, IBrandRepository brandRepository, ICategoryRepository categoryRepository, IProductStatusHistoryRepository productStatusHistoryRepository, IAttributeOptionRepository attributeOptionRepository, IPackageRepository packageRepository, CapacityHelper capacityHelper, IRankService rankService)
 		{
 			_productRepository = productRepository;
 			_unitOfWork = unitOfWork;
@@ -40,8 +41,9 @@ namespace ElecWasteCollection.Application.Services
 			_attributeOptionRepository = attributeOptionRepository;
 			_packageRepository = packageRepository;
 			_capacityHelper = capacityHelper;
+			_rankService = rankService;
 
-        }
+		}
 
 
 
@@ -101,6 +103,11 @@ namespace ElecWasteCollection.Application.Services
 					Desciption = "Điểm nhận được khi gửi sản phẩm tại kho",
 				};
 				 await _pointTransactionService.ReceivePointFromCollectionPoint(pointTransaction,false);
+				var user = await _unitOfWork.Users.GetAsync(u => u.UserId == createProductRequest.SenderId.Value);
+				if (user != null)
+				{
+					await _rankService.UpdateUserRankImpactAsync(user, newProduct.ProductId);
+				}
 			}
 			var newHistory = new ProductStatusHistory
 			{
