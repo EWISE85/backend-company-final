@@ -430,7 +430,10 @@ namespace ElecWasteCollection.Application.Services
 		{
 			if (packageIds == null || !packageIds.Any()) return false;
 
-			var packages = await _unitOfWork.Packages.GetAllAsync(p => packageIds.Contains(p.PackageId));
+			var packages = await _unitOfWork.Packages.GetAllAsync(
+		p => packageIds.Contains(p.PackageId),
+		includeProperties: "SmallCollectionPoints"
+	);
 
 			var pointIdsToSync = packages.Select(p => p.SmallCollectionPointsId).Distinct().ToList();
 
@@ -495,10 +498,67 @@ namespace ElecWasteCollection.Application.Services
 				if (!string.IsNullOrEmpty(pointId))
 					await _capacityHelper.SyncRealtimeCapacityAsync(pointId);
 			}
-
+			if (statusEnum == PackageStatus.DANG_VAN_CHUYEN)
+			{
+				await NotifyRecyclingAdminsOnDelivery(packages.ToList());
+			}
 			return true;
 		}
+		private async Task NotifyRecyclingAdminsOnDelivery(List<Packages> packages)
+		{
+			var groupedByCompany = packages
+				.Where(p => p.SmallCollectionPoints != null && !string.IsNullOrEmpty(p.SmallCollectionPoints.RecyclingCompanyId))
+				.GroupBy(p => p.SmallCollectionPoints.RecyclingCompanyId);
 
+			foreach (var group in groupedByCompany)
+			{
+				var recyclingCompanyId = group.Key;
+				var packageCount = group.Count();
+				var packageIds = group.Select(p => p.PackageId).ToList();
+
+				// Tìm các Admin thuộc công ty tái chế này
+				var admins = await _unitOfWork.Users.GetAllAsync(u =>
+					u.CollectionCompanyId == recyclingCompanyId &&
+					u.Role == UserRole.RecyclingCompany.ToString()
+				);
+
+				foreach (var admin in admins)
+				{
+					var title = "Đơn hàng đang đến";
+					var message = $"{packageCount} kiện hàng đã được bàn giao cho vận chuyển và đang trên đường đến cơ sở của bạn.";
+
+					// 1. Gửi SignalR real-time
+					await _notificationService.SendNotificationAsync(
+						userId: admin.UserId.ToString(),
+						title: title,
+						message: message,
+						type: "info",
+						data: new
+						{
+							PackageIds = packageIds,
+							Action = "PACKAGES_IN_TRANSIT",
+							Timestamp = DateTime.UtcNow
+						}
+					);
+
+					// 2. Lưu vào bảng Notifications
+					var notificationEntry = new Notifications
+					{
+						NotificationId = Guid.NewGuid(),
+						UserId = admin.UserId,
+						Title = title,
+						Body = message,
+						CreatedAt = DateTime.UtcNow,
+						IsRead = false,
+						Type = "System"
+					};
+					await _unitOfWork.Notifications.AddAsync(notificationEntry);
+				}
+			}
+
+			// Lưu tất cả thông báo vào DB
+			await _unitOfWork.SaveAsync();
+		}
 		public async Task<bool> UpdatePackageStatusRecycler(string packageId, string status)
 		{
 			var package = await _packageRepository.GetAsync(p => p.PackageId == packageId);
