@@ -89,9 +89,14 @@ namespace ElecWasteCollection.Application.Services
 
 		public async Task<PagedResultModel<SmallCollectionPointsResponse>> GetPagedSmallCollectionPointsAsync(SmallCollectionSearchModel model)
 		{
+			string statusEnum = null;
+			if (!string.IsNullOrEmpty(model.Status))
+			{
+				statusEnum = StatusEnumHelper.GetValueFromDescription<SmallCollectionPointStatus>(model.Status).ToString();
+			}
 			var (entities, totalItems) = await _smallCollectionRepository.GetPagedAsync(
 				companyId: model.CompanyId,
-				status: model.Status,
+				status: statusEnum,
 				page: model.Page,
 				limit: model.Limit
 			);
