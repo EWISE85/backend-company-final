@@ -24,6 +24,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
             _unitOfWork = unitOfWork;
         }
 
+
         public void AssignProductsInBackground(List<Guid> productIds, DateOnly workDate, string userId, List<string>? targetCompanyIds = null)
         {
             Task.Run(async () =>
