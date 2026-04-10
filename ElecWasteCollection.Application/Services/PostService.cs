@@ -228,11 +228,11 @@ namespace ElecWasteCollection.Application.Services
 
             var validCandidates = new List<SmallCollectionPoints>();
 
-            foreach (var comp in allCompanies.Where(c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString()))
+            foreach (var comp in allCompanies.Where(c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString()))
             {
                 foreach (var sp in comp.SmallCollectionPoints.Where(s => s.Status == CompanyStatus.DANG_HOAT_DONG.ToString()))
                 {
-                    var rComp = recyclingCompanies.FirstOrDefault(c => c.CompanyId == sp.CompanyId);
+                    var rComp = recyclingCompanies.FirstOrDefault(c => c.CompanyId == sp.RecyclingCompanyId);
                     bool canHandle = rComp?.CompanyRecyclingCategories.Any(crc => crc.CategoryId == rootCateId) ?? false;
 
                     if (!canHandle) continue;

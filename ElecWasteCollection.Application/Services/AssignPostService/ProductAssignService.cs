@@ -276,7 +276,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
 
             // Tách nhóm Primary và Fallback
             var allColCompanies = allCompanies
-                .Where(c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString() && c.Status == CompanyStatus.DANG_HOAT_DONG.ToString())
+                .Where(c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString() && c.Status == CompanyStatus.DANG_HOAT_DONG.ToString())
                 .ToList();
 
             var primaryCompanies = allColCompanies.Where(c => !c.IsFallback).OrderBy(c => c.Priority).ToList();
@@ -349,7 +349,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
                         foreach (var prod in groupProds)
                         {
                             if (!categoryMap.TryGetValue(prod.CategoryId, out Guid rootId)) { supportsAll = false; break; }
-                            var rComp = recyclingCompanies.FirstOrDefault(c => c.CompanyId == sp.CompanyId);
+                            var rComp = recyclingCompanies.FirstOrDefault(c => c.CompanyId == sp.RecyclingCompanyId);
                             if (rComp?.CompanyRecyclingCategories.Any(crc => crc.CategoryId == rootId) != true) { supportsAll = false; break; }
                         }
                         if (!supportsAll) continue;
@@ -743,7 +743,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
             product.Status = ProductStatus.CHO_GOM_NHOM.ToString();
             product.AssignedAt = workDate;
             post.AssignedSmallCollectionPointsId = chosen.SmallPointId;
-            post.CompanyId = chosen.CompanyId;
+            post.CollectionCompanyId = chosen.CompanyId;
             post.DistanceToPointKm = chosen.RoadKm;
 
             historyBag.Add(new ProductStatusHistory

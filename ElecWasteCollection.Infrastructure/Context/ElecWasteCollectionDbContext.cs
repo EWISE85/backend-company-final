@@ -312,7 +312,7 @@ namespace ElecWasteCollection.Infrastructure.Context
 				entity.HasKey(e => e.PostId);
 				entity.Property(e => e.PostId).ValueGeneratedOnAdd();
 				entity.Property(e => e.SenderId).IsRequired();
-				entity.Property(e => e.CompanyId).IsRequired(false);
+				entity.Property(e => e.CollectionCompanyId).IsRequired(false);
 				entity.Property(e => e.AssignedSmallCollectionPointsId).IsRequired(false);
 
 				entity.HasOne(e => e.Sender)
@@ -327,7 +327,7 @@ namespace ElecWasteCollection.Infrastructure.Context
 
 				entity.HasOne(e => e.CollectionCompany)
 				.WithMany(c => c.Posts)
-					  .HasForeignKey(e => e.CompanyId)
+					  .HasForeignKey(e => e.CollectionCompanyId)
 					  .HasConstraintName("FK_Post_CollectionCompany");
 
                 entity.HasOne(e => e.AssignedSmallCollectionPoints)

@@ -41,7 +41,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
                 var companyRepo = _unitOfWork.Companies;
                 var configRepo = _unitOfWork.SystemConfig;
 
-                var allCompanies = await companyRepo.GetAllAsync(includeProperties: "CollectionUnit");
+                var allCompanies = await companyRepo.GetAllAsync(includeProperties: "SmallCollectionPoints");
 
                 var allConfigs = await configRepo.GetAllAsync();
 

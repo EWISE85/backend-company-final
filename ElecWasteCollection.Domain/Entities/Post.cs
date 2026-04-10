@@ -36,7 +36,7 @@ namespace ElecWasteCollection.Domain.Entities
 		public List<string>? CheckMessage { get; set; }
 		public string? RejectMessage { get; set; }
 		public string Status { get; set; }
-        public string? CompanyId { get; set; }
+        public string? CollectionCompanyId { get; set; }
         public string? AssignedSmallCollectionPointsId { get; set; }
         public double? DistanceToPointKm { get; set; }
 

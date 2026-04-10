@@ -147,7 +147,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
             if (companyEntity == null) throw new Exception("Không tìm thấy công ty nào.");
 
             var allPosts = await _unitOfWork.Posts.GetAllAsync(
-                filter: p => p.CompanyId == companyId,
+                filter: p => p.CollectionCompanyId == companyId,
                 includeProperties: "Product,Product.Category,Product.Brand,Sender"
             );
 
@@ -326,7 +326,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
         public async Task<List<CompanyWithPointsResponse>> GetCompaniesWithSmallPointsAsync()
         {
             var companies = await _unitOfWork.Companies.GetAllAsync(
-                filter: c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString(),
+                filter: c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString(),
                 includeProperties: "SmallCollectionPoints");
 
             var allConfigs = await _unitOfWork.SystemConfig.GetAllAsync();
@@ -442,7 +442,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
 
             if (!activePosts.Any()) return new List<CompanyDailySummaryDto>();
 
-            var companyIds = activePosts.Select(p => p.CompanyId).Distinct().ToList();
+            var companyIds = activePosts.Select(p => p.CollectionCompanyId).Distinct().ToList();
 
             var companies = await _unitOfWork.Companies.GetAllAsync(
                 filter: c => companyIds.Contains(c.CompanyId),
@@ -453,7 +453,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
 
             foreach (var company in companies)
             {
-                var companyPosts = activePosts.Where(p => p.CompanyId == company.CompanyId).ToList();
+                var companyPosts = activePosts.Where(p => p.CollectionCompanyId == company.CompanyId).ToList();
 
                 var companyDto = new CompanyDailySummaryDto
                 {
@@ -488,7 +488,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
 
         public async Task<List<CompanyMetricsDto>> GetAllCompaniesDailyMetricsAsync(DateOnly workDate)
         {
-            var targetType = CompanyType.CTY_TAI_CHE.ToString();
+            var targetType = CompanyType.CTY_THU_GOM.ToString();
             var companies = await _unitOfWork.Companies.GetAllAsync(
                 filter: c => c.CompanyType == targetType,
                 includeProperties: "SmallCollectionPoints"
