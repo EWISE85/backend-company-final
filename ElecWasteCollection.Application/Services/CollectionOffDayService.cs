@@ -91,7 +91,7 @@ namespace ElecWasteCollection.Application.Services
         public async Task<List<CompanyAvailableModel>> GetAvailableCompaniesForAssignAsync(DateOnly workDate)
         {
             var allCompanies = await _unitOfWork.Companies.GetAllAsync(
-                c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString() && c.Status == CompanyStatus.DANG_HOAT_DONG.ToString(),
+                c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString() && c.Status == CompanyStatus.DANG_HOAT_DONG.ToString(),
                 includeProperties: "SmallCollectionPoints"
             );
 

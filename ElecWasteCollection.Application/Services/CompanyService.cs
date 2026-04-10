@@ -9,114 +9,114 @@ using ElecWasteCollection.Application.Helper;
 
 namespace ElecWasteCollection.Application.Services
 {
-	public class CompanyService : ICompanyService
-	{
-		private readonly ICompanyRepository _collectionCompanyRepository;
-		private readonly IUnitOfWork _unitOfWork;
-		private readonly IAccountRepsitory _accountRepository;
-		private readonly IUserRepository _userRepository;
-		public CompanyService(ICompanyRepository collectionCompanyRepository, IUnitOfWork unitOfWork, IAccountRepsitory accountRepository, IUserRepository userRepository)
-		{
-			_collectionCompanyRepository = collectionCompanyRepository;
-			_unitOfWork = unitOfWork;
-			_accountRepository = accountRepository;
-			_userRepository = userRepository;
-		}
+    public class CompanyService : ICompanyService
+    {
+        private readonly ICompanyRepository _collectionCompanyRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IAccountRepsitory _accountRepository;
+        private readonly IUserRepository _userRepository;
+        public CompanyService(ICompanyRepository collectionCompanyRepository, IUnitOfWork unitOfWork, IAccountRepsitory accountRepository, IUserRepository userRepository)
+        {
+            _collectionCompanyRepository = collectionCompanyRepository;
+            _unitOfWork = unitOfWork;
+            _accountRepository = accountRepository;
+            _userRepository = userRepository;
+        }
 
-		public async Task<bool> AddNewCompany(Company collectionTeams)
-		{
-			await _unitOfWork.Companies.AddAsync(collectionTeams);
-			await _unitOfWork.SaveAsync();
-			return true;
+        public async Task<bool> AddNewCompany(Company collectionTeams)
+        {
+            await _unitOfWork.Companies.AddAsync(collectionTeams);
+            await _unitOfWork.SaveAsync();
+            return true;
 
-		}
+        }
 
-		public async Task<ImportResult> CheckAndUpdateCompanyAsync(Company importData, string adminUsername, string rawPassword)
-		{
-			var result = new ImportResult();
-			if (importData == null)
-			{
-				result.Success = false;
-				result.Messages.Add("Dữ liệu công ty trống.");
-				return result;
-			}
+        public async Task<ImportResult> CheckAndUpdateCompanyAsync(Company importData, string adminUsername, string rawPassword)
+        {
+            var result = new ImportResult();
+            if (importData == null)
+            {
+                result.Success = false;
+                result.Messages.Add("Dữ liệu công ty trống.");
+                return result;
+            }
 
-			try
-			{
-				var existingCompany = await _collectionCompanyRepository.GetAsync(c => c.CompanyId == importData.CompanyId);
+            try
+            {
+                var existingCompany = await _collectionCompanyRepository.GetAsync(c => c.CompanyId == importData.CompanyId);
 
-				if (existingCompany != null)
-				{
-					var statusEnum = StatusEnumHelper.GetValueFromDescription<CompanyStatus>(importData.Status);
-					existingCompany.Name = importData.Name;
-					existingCompany.Address = importData.Address;
-					existingCompany.Phone = importData.Phone;
-					existingCompany.Status = statusEnum.ToString();
-					existingCompany.CompanyEmail = importData.CompanyEmail;
-					existingCompany.Updated_At = DateTime.UtcNow;
-					_unitOfWork.Companies.Update(existingCompany);
-					result.Messages.Add($"Đã cập nhật thông tin công ty '{importData.Name}'.");
-					result.IsNew = false;
-				}
-				else
-				{
-					importData.Created_At = DateTime.UtcNow;
-					importData.Updated_At = DateTime.UtcNow;
-					await _unitOfWork.Companies.AddAsync(importData);
-					var newAdminId = Guid.NewGuid();
-					var newAdminUser = new User
-					{
-						UserId = newAdminId,
-						Name = $"Admin {importData.Name}",
-						Email = importData.CompanyEmail,
-						Phone = importData.Phone,
-						Avatar = null,
-						Role = UserRole.AdminCompany.ToString(),
-						Status = UserStatus.DANG_HOAT_DONG.ToString(),
-						CollectionCompanyId = importData.CompanyId
-					};
+                if (existingCompany != null)
+                {
+                    var statusEnum = StatusEnumHelper.GetValueFromDescription<CompanyStatus>(importData.Status);
+                    existingCompany.Name = importData.Name;
+                    existingCompany.Address = importData.Address;
+                    existingCompany.Phone = importData.Phone;
+                    existingCompany.Status = statusEnum.ToString();
+                    existingCompany.CompanyEmail = importData.CompanyEmail;
+                    existingCompany.Updated_At = DateTime.UtcNow;
+                    _unitOfWork.Companies.Update(existingCompany);
+                    result.Messages.Add($"Đã cập nhật thông tin công ty '{importData.Name}'.");
+                    result.IsNew = false;
+                }
+                else
+                {
+                    importData.Created_At = DateTime.UtcNow;
+                    importData.Updated_At = DateTime.UtcNow;
+                    await _unitOfWork.Companies.AddAsync(importData);
+                    var newAdminId = Guid.NewGuid();
+                    var newAdminUser = new User
+                    {
+                        UserId = newAdminId,
+                        Name = $"Admin {importData.Name}",
+                        Email = importData.CompanyEmail,
+                        Phone = importData.Phone,
+                        Avatar = null,
+                        Role = UserRole.AdminCompany.ToString(),
+                        Status = UserStatus.DANG_HOAT_DONG.ToString(),
+                        CollectionCompanyId = importData.CompanyId
+                    };
 
-					await _unitOfWork.Users.AddAsync(newAdminUser);
-					var newAccount = new Account
-					{
-						AccountId = Guid.NewGuid(),
-						UserId = newAdminId,
-						Username = adminUsername,
-						PasswordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword),
-						IsFirstLogin = true
-					};
+                    await _unitOfWork.Users.AddAsync(newAdminUser);
+                    var newAccount = new Account
+                    {
+                        AccountId = Guid.NewGuid(),
+                        UserId = newAdminId,
+                        Username = adminUsername,
+                        PasswordHash = rawPassword,
+                        IsFirstLogin = true
+                    };
 
-					await _unitOfWork.Accounts.AddAsync(newAccount);
-					result.Messages.Add($"Thêm mới công ty '{importData.Name}' và tài khoản Admin thành công.");
-					result.IsNew = true;
-				}
+                    await _unitOfWork.Accounts.AddAsync(newAccount);
+                    result.Messages.Add($"Thêm mới công ty '{importData.Name}' và tài khoản Admin thành công.");
+                    result.IsNew = true;
+                }
 
-				await _unitOfWork.SaveAsync();
+                await _unitOfWork.SaveAsync();
 
-				result.Success = true;
-				return result;
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"[ERROR] CheckAndUpdateCompanyAsync: {ex}");
+                result.Success = true;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] CheckAndUpdateCompanyAsync: {ex}");
 
-				result.Success = false;
-				result.Messages.Add($"Lỗi xử lý: {ex.Message}");
-			}
+                result.Success = false;
+                result.Messages.Add($"Lỗi xử lý: {ex.Message}");
+            }
 
-			return result;
-		}
+            return result;
+        }
 
 
-		public async Task<bool> DeleteCompany(string collectionCompanyId)
-		{
-			var company = await _collectionCompanyRepository.GetAsync(t => t.CompanyId == collectionCompanyId);
-			if (company == null) throw new AppException("Không tìm thấy công ty", 404);
-			company.Status = CompanyStatus.KHONG_HOAT_DONG.ToString();
-			_unitOfWork.Companies.Update(company);
-			await _unitOfWork.SaveAsync();
-			return true;
-		}
+        public async Task<bool> DeleteCompany(string collectionCompanyId)
+        {
+            var company = await _collectionCompanyRepository.GetAsync(t => t.CompanyId == collectionCompanyId);
+            if (company == null) throw new AppException("Không tìm thấy công ty", 404);
+            company.Status = CompanyStatus.KHONG_HOAT_DONG.ToString();
+            _unitOfWork.Companies.Update(company);
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
 
         public async Task<PagedResult<CollectionCompanyResponse>> GetCollectionCompaniesPagedAsync(int page, int limit)
         {
@@ -148,114 +148,123 @@ namespace ElecWasteCollection.Application.Services
             };
         }
 
-		public async Task<CollectionCompanyResponse> GetCompanyById(string collectionCompanyId)
-		{
-			var company = await _collectionCompanyRepository.GetAsync(c => c.CompanyId == collectionCompanyId);
-			if (company == null) throw new AppException("Không tìm thấy công ty", 404);
+        public async Task<CollectionCompanyResponse> GetCompanyById(string collectionCompanyId)
+        {
+            var company = await _collectionCompanyRepository.GetAsync(c => c.CompanyId == collectionCompanyId);
+            if (company == null) throw new AppException("Không tìm thấy công ty", 404);
 
-			IEnumerable<SmallCollectionPoints> warehousesEntity = new List<SmallCollectionPoints>();
+            IEnumerable<SmallCollectionPoints> warehousesEntity = new List<SmallCollectionPoints>();
 
-			// Chỉ còn loại hình tái chế, gộp logic lại cho gọn
-			if (company.CompanyType == CompanyType.CTY_TAI_CHE.ToString())
-			{
-				warehousesEntity = await _unitOfWork.SmallCollectionPoints.GetAllAsync(
-					s => s.CompanyId == company.CompanyId &&
-						 s.Status == SmallCollectionPointStatus.DANG_HOAT_DONG.ToString(),
-					includeProperties: "Company"); // <-- Sửa thành "Company" cho khớp với Entity
-			}
+            if (company.CompanyType == CompanyType.CTY_THU_GOM.ToString())
+            {
+                warehousesEntity = await _unitOfWork.SmallCollectionPoints.GetAllAsync(
+                    s => s.CompanyId == company.CompanyId &&
+                         s.Status == SmallCollectionPointStatus.DANG_HOAT_DONG.ToString(),
+                    includeProperties: "CollectionCompany");
+            }
+            else if (company.CompanyType == CompanyType.CTY_TAI_CHE.ToString())
+            {
+                warehousesEntity = await _unitOfWork.SmallCollectionPoints.GetAllAsync(
+                    s => s.RecyclingCompanyId == company.CompanyId &&
+                         s.Status == SmallCollectionPointStatus.DANG_HOAT_DONG.ToString(),
+                    includeProperties: "CollectionCompany");
+            }
 
-			var response = new CollectionCompanyResponse
-			{
-				Id = company.CompanyId,
-				Name = company.Name,
-				CompanyEmail = company.CompanyEmail,
-				Phone = company.Phone,
-				City = company.Address,
-				Warehouses = warehousesEntity.Select(w => new SmallCollectionPointsResponse
-				{
-					Address = w.Address,
-					Id = w.SmallCollectionPointsId,
-					Name = w.Name,
-					Latitude = w.Latitude,
-					Longitude = w.Longitude,
-					OpenTime = w.OpenTime,
-					CompanyName = w.CollectionCompany?.Name,
-					Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<SmallCollectionPointStatus>(w.Status)
-				}).ToList(),
-				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<CompanyStatus>(company.Status)
-			};
+            if (warehousesEntity == null) warehousesEntity = new List<SmallCollectionPoints>();
 
-			return response;
-		}
+            var response = new CollectionCompanyResponse
+            {
+                Id = company.CompanyId,
+                Name = company.Name,
+                CompanyEmail = company.CompanyEmail,
+                Phone = company.Phone,
+                City = company.Address,
+                Warehouses = warehousesEntity.Select(w => new SmallCollectionPointsResponse
+                {
+                    Address = w.Address,
+                    Id = w.SmallCollectionPointsId,
+                    Name = w.Name,
+                    Latitude = w.Latitude,
+                    Longitude = w.Longitude,
+                    OpenTime = w.OpenTime,
+                    CompanyName = w.CollectionCompany?.Name,
+                    Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<SmallCollectionPointStatus>(w.Status)
+                }).ToList(),
 
-		public async Task<List<CollectionCompanyResponse>> GetCompanyByName(string companyName)
-		{
-			var companies = await _collectionCompanyRepository.GetAllAsync(c => c.Name.Contains(companyName));
-			if (companies == null) throw new AppException("Không tìm thấy công ty", 404);
-			var response = companies.Select(team => new CollectionCompanyResponse
-			{
-				Id = team.CompanyId,
-				Name = team.Name,
-				CompanyEmail = team.CompanyEmail,
-				Phone = team.Phone,
-				City = team.Address,
+                Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<CompanyStatus>(company.Status)
+            };
+
+            return response;
+        }
+
+        public async Task<List<CollectionCompanyResponse>> GetCompanyByName(string companyName)
+        {
+            var companies = await _collectionCompanyRepository.GetAllAsync(c => c.Name.Contains(companyName));
+            if (companies == null) throw new AppException("Không tìm thấy công ty", 404);
+            var response = companies.Select(team => new CollectionCompanyResponse
+            {
+                Id = team.CompanyId,
+                Name = team.Name,
+                CompanyEmail = team.CompanyEmail,
+                Phone = team.Phone,
+                City = team.Address,
                 Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<CompanyStatus>(team.Status)
             }).ToList();
-			return response;
-		}
+            return response;
+        }
 
-		public async Task<PagedResultModel<CollectionCompanyResponse>> GetPagedCompanyAsync(CompanySearchModel model)
-		{
-			string? statusEnum = null;
-			if(model.Status != null)
-			{
-				 statusEnum = StatusEnumHelper.GetValueFromDescription<CompanyStatus>(model.Status).ToString();
-			}
-			string? typeEnum = null;
-			if (model.Type != null)
-			{
-				typeEnum = StatusEnumHelper.GetValueFromDescription<CompanyType>(model.Type).ToString();
-			}
-			var (entities, totalItems) = await _collectionCompanyRepository.GetPagedCompaniesAsync(
-				type: typeEnum,
-				status: statusEnum,
-				page: model.Page,
-				limit: model.Limit
-			);
+        public async Task<PagedResultModel<CollectionCompanyResponse>> GetPagedCompanyAsync(CompanySearchModel model)
+        {
+            string? statusEnum = null;
+            if (model.Status != null)
+            {
+                statusEnum = StatusEnumHelper.GetValueFromDescription<CompanyStatus>(model.Status).ToString();
+            }
+            string? typeEnum = null;
+            if (model.Type != null)
+            {
+                typeEnum = StatusEnumHelper.GetValueFromDescription<CompanyType>(model.Type).ToString();
+            }
+            var (entities, totalItems) = await _collectionCompanyRepository.GetPagedCompaniesAsync(
+                type: typeEnum,
+                status: statusEnum,
+                page: model.Page,
+                limit: model.Limit
+            );
 
-			var resultList = entities.Select(company => new CollectionCompanyResponse
-			{
-				Id = company.CompanyId,
-				Name = company.Name,
-				CompanyEmail = company.CompanyEmail,
-				Phone = company.Phone,
-				City = company.Address,
-				Status = company.Status
-			}).ToList();
+            var resultList = entities.Select(company => new CollectionCompanyResponse
+            {
+                Id = company.CompanyId,
+                Name = company.Name,
+                CompanyEmail = company.CompanyEmail,
+                Phone = company.Phone,
+                City = company.Address,
+                Status = company.Status
+            }).ToList();
 
-			// 3. Đóng gói kết quả
-			return new PagedResultModel<CollectionCompanyResponse>(
-				resultList,
-				model.Page,
-				model.Limit,
-				totalItems
-			);
-		}
+            // 3. Đóng gói kết quả
+            return new PagedResultModel<CollectionCompanyResponse>(
+                resultList,
+                model.Page,
+                model.Limit,
+                totalItems
+            );
+        }
 
 
-		public async Task<bool> UpdateCompany(Company collectionTeams)
-		{
-			var team = await _collectionCompanyRepository.GetAsync(t => t.CompanyId == collectionTeams.CompanyId);
-			if (team == null) throw new AppException("Không tìm thấy công ty", 404);
-			team.Address = collectionTeams.Address;
-			team.CompanyEmail = collectionTeams.CompanyEmail;
-			team.Name = collectionTeams.Name;
-			team.Phone = collectionTeams.Phone;
-			team.Status = collectionTeams.Status;
-			_unitOfWork.Companies.Update(team);
-			await _unitOfWork.SaveAsync();
-			return true;
+        public async Task<bool> UpdateCompany(Company collectionTeams)
+        {
+            var team = await _collectionCompanyRepository.GetAsync(t => t.CompanyId == collectionTeams.CompanyId);
+            if (team == null) throw new AppException("Không tìm thấy công ty", 404);
+            team.Address = collectionTeams.Address;
+            team.CompanyEmail = collectionTeams.CompanyEmail;
+            team.Name = collectionTeams.Name;
+            team.Phone = collectionTeams.Phone;
+            team.Status = collectionTeams.Status;
+            _unitOfWork.Companies.Update(team);
+            await _unitOfWork.SaveAsync();
+            return true;
 
-		}
-	}
+        }
+    }
 }

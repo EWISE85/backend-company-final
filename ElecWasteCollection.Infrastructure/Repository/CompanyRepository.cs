@@ -49,7 +49,7 @@ namespace ElecWasteCollection.Infrastructure.Repository
                 .AsNoTracking()
                 .Where(c =>
                     c.CompanyType ==
-                    CompanyType.CTY_TAI_CHE.ToString());
+                    CompanyType.CTY_THU_GOM.ToString());
 
             var totalCount = await query.CountAsync();
 

@@ -130,7 +130,7 @@ namespace ElecWasteCollection.Application.Services.AssignPostService
                 var configRepo = _unitOfWork.SystemConfig;
 
                 var companies = await companyRepo.GetAllAsync(
-                    filter: c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString()
+                    filter: c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString()
                     && c.Status == CompanyStatus.DANG_HOAT_DONG.ToString(),
                     includeProperties: "SmallCollectionPoints"
                 );
