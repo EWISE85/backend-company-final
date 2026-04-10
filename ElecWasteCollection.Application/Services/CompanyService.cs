@@ -87,7 +87,7 @@ namespace ElecWasteCollection.Application.Services
                         AccountId = Guid.NewGuid(),
                         UserId = newAdminId,
                         Username = adminUsername,
-                        PasswordHash = rawPassword,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(rawPassword),
                         IsFirstLogin = true
                     };
 
