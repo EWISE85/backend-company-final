@@ -899,7 +899,7 @@ namespace ElecWasteCollection.Application.Services
         {
             var point = await _unitOfWork.SmallCollectionPoints.GetAsync(
                 p => p.SmallCollectionPointsId == request.CollectionPointId,
-                includeProperties: "Company")
+                includeProperties: "CollectionCompany")
                 ?? throw new Exception($"Không tìm thấy trạm thu gom với ID: {request.CollectionPointId}");
 
             var response = new GroupingByPointResponse { CollectionPoint = point.Name, SavedToDatabase = request.SaveResult, CreatedGroups = new List<GroupSummary>() };

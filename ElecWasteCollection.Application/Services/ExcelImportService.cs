@@ -82,7 +82,7 @@ namespace ElecWasteCollection.Application.Services
 					{
 						await ImportCompanyAsync(worksheet, result);
 					}
-					else if (importType.Equals("CollectionUnit", StringComparison.OrdinalIgnoreCase))
+					else if (importType.Equals("SmallCollectionPoints", StringComparison.OrdinalIgnoreCase))
 					{
 						await ImportSmallCollectionPointAsync(worksheet, result);
 					}
@@ -569,7 +569,7 @@ Ban Quản Trị Hệ Thống";
 
 				if (companyType.Equals("Collection Company", StringComparison.OrdinalIgnoreCase) || companyType.Equals("Công ty thu gom", StringComparison.OrdinalIgnoreCase))
 				{
-					companyTypeToSave = CompanyType.CTY_TAI_CHE.ToString();
+					companyTypeToSave = CompanyType.CTY_THU_GOM.ToString();
 				}
 				else if (companyType.Equals("Recycling Company", StringComparison.OrdinalIgnoreCase) || companyType.Equals("Công ty tái chế", StringComparison.OrdinalIgnoreCase))
 				{
@@ -577,7 +577,7 @@ Ban Quản Trị Hệ Thống";
 				}
 				else
 				{
-					companyTypeToSave = CompanyType.CTY_TAI_CHE.ToString();
+					companyTypeToSave = CompanyType.CTY_THU_GOM.ToString();
 				}
 				var company = new Company
 				{

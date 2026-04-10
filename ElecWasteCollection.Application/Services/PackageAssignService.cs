@@ -57,7 +57,7 @@ namespace ElecWasteCollection.Application.Services.AssignPackageService
 
                 foreach (var scp in scpsToAssign)
                 {
-                    scp.CompanyId = req.RecyclingCompanyId;
+                    scp.RecyclingCompanyId = req.RecyclingCompanyId;
                     _unitOfWork.SmallCollectionPoints.Update(scp);
                 }
             }
@@ -78,7 +78,7 @@ namespace ElecWasteCollection.Application.Services.AssignPackageService
             if (scp == null)
                 throw new Exception($"Không tìm thấy điểm thu gom có ID: {scpId}");
 
-            if (scp.CompanyId == newCompanyId)
+            if (scp.RecyclingCompanyId == newCompanyId)
                 throw new Exception("Điểm thu gom này đang thuộc về công ty bạn chọn rồi. Không cần cập nhật.");
 
             var company = await _unitOfWork.Companies.GetAsync(c => c.CompanyId == newCompanyId);
@@ -88,7 +88,7 @@ namespace ElecWasteCollection.Application.Services.AssignPackageService
             if (company.CompanyType != CompanyType.CTY_TAI_CHE.ToString())
                 throw new Exception($"Công ty '{company.Name}' không phải là công ty tái chế.");
 
-            scp.CompanyId = newCompanyId;
+            scp.RecyclingCompanyId = newCompanyId;
             _unitOfWork.SmallCollectionPoints.Update(scp);
 
             await _unitOfWork.SaveAsync();
@@ -97,7 +97,7 @@ namespace ElecWasteCollection.Application.Services.AssignPackageService
         public async Task<List<CollectionCompanyGroupDto>> GetAssignmentOverviewAsync()
         {
             var collectionCompanies = await _unitOfWork.Companies.GetAllAsync(
-                filter: c => c.CompanyType == CompanyType.CTY_TAI_CHE.ToString(),
+                filter: c => c.CompanyType == CompanyType.CTY_THU_GOM.ToString(),
                 includeProperties: "SmallCollectionPoints,SmallCollectionPoints.RecyclingCompany"
             );
 
