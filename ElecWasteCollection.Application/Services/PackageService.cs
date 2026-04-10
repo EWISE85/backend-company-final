@@ -21,8 +21,9 @@ namespace ElecWasteCollection.Application.Services
 		private readonly IUnitOfWork _unitOfWork;
         private readonly CapacityHelper _capacityHelper;
 		private readonly IRankService _rankService;
+		private readonly IWebNotificationService _notificationService;
 
-        public PackageService(IProductService productService, IPackageRepository packageRepository, IProductStatusHistoryRepository productStatusHistoryRepository, IUnitOfWork unitOfWork, CapacityHelper capacityHelper,IRankService rankService)
+		public PackageService(IProductService productService, IPackageRepository packageRepository, IProductStatusHistoryRepository productStatusHistoryRepository, IUnitOfWork unitOfWork, CapacityHelper capacityHelper,IRankService rankService, IWebNotificationService webNotificationService)
 		{
 			_productService = productService;
 			_packageRepository = packageRepository;
@@ -30,7 +31,8 @@ namespace ElecWasteCollection.Application.Services
 			_unitOfWork = unitOfWork;
             _capacityHelper = capacityHelper;
 			_rankService = rankService;
-        }
+			_notificationService = webNotificationService;
+		}
 
 		public async Task<string> CreatePackageAsync(CreatePackageModel model)
 		{
@@ -349,7 +351,10 @@ namespace ElecWasteCollection.Application.Services
 
 		public async Task<bool> UpdatePackageStatus(string packageId, string status)
 		{
-			var package = await _packageRepository.GetAsync(p => p.PackageId == packageId);
+			var package = await _unitOfWork.Packages.GetAsync(
+		p => p.PackageId == packageId,
+		includeProperties: "SmallCollectionPoints"
+	); 
 
 			if (package == null) throw new AppException("Không tìm thấy package", 404);
 			var products = await _productService.GetProductsByPackageIdAsync(packageId);
@@ -368,9 +373,59 @@ namespace ElecWasteCollection.Application.Services
 			_unitOfWork.Packages.Update(package);
 			await _unitOfWork.PackageStatusHistory.AddAsync(newPackageStatusHistory);
 			await _unitOfWork.SaveAsync();
+			if (statusEnum == PackageStatus.DA_DONG_THUNG)
+			{
+				await NotifyRecyclingAdmins(package);
+			}
 			return true;
 		}
+		private async Task NotifyRecyclingAdmins(Packages package)
+		{
+			// Lấy ID công ty tái chế từ kho (SmallCollectionPoints)
+			var recyclingCompanyId = package.SmallCollectionPoints?.RecyclingCompanyId;
 
+			if (string.IsNullOrEmpty(recyclingCompanyId)) return;
+
+			var admins = await _unitOfWork.Users.GetAllAsync(u =>
+				u.CollectionCompanyId == recyclingCompanyId &&
+				u.Role == UserRole.RecyclingCompany.ToString()
+			);
+
+			foreach (var admin in admins)
+			{
+				var title = "Kiện hàng mới sẵn sàng";
+				var message = $"Kiện hàng {package.PackageId} tại kho {package.SmallCollectionPoints.Name} đã đóng thùng. Vui lòng xác nhận vận chuyển.";
+
+				// Gửi SignalR real-time
+				await _notificationService.SendNotificationAsync(
+					userId: admin.UserId.ToString(),
+					title: title,
+					message: message,
+					type: "info",
+					data: new
+					{
+						PackageId = package.PackageId,
+						SourceWarehouse = package.SmallCollectionPoints.Name,
+						Action = "PACKAGE_READY_FOR_RECYCLE"
+					}
+				);
+
+				// Lưu vào bảng Notifications để User xem lại sau này
+				var notificationEntry = new Notifications
+				{
+					NotificationId = Guid.NewGuid(),
+					UserId = admin.UserId,
+					Title = title,
+					Body = message,
+					CreatedAt = DateTime.UtcNow,
+					IsRead = false,
+					Type = "System"
+				};
+				await _unitOfWork.Notifications.AddAsync(notificationEntry);
+			}
+
+			await _unitOfWork.SaveAsync();
+		}
 		public async Task<bool> UpdatePackageStatusDelivery(string deliveryQrCode, List<string> packageIds, string status)
 		{
 			if (packageIds == null || !packageIds.Any()) return false;
