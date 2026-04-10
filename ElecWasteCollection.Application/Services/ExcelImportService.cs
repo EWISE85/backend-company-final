@@ -82,7 +82,7 @@ namespace ElecWasteCollection.Application.Services
 					{
 						await ImportCompanyAsync(worksheet, result);
 					}
-					else if (importType.Equals("SmallCollectionPoints", StringComparison.OrdinalIgnoreCase))
+					else if (importType.Equals("SmallCollectionPoint", StringComparison.OrdinalIgnoreCase))
 					{
 						await ImportSmallCollectionPointAsync(worksheet, result);
 					}
