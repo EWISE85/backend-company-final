@@ -78,7 +78,8 @@ namespace ElecWasteCollection.Application.Services
                         Avatar = null,
                         Role = userRole,
                         Status = UserStatus.DANG_HOAT_DONG.ToString(),
-                        CollectionCompanyId = importData.CompanyId
+						CreateAt = DateTime.UtcNow,
+						CollectionCompanyId = importData.CompanyId
                     };
 
                     await _unitOfWork.Users.AddAsync(newAdminUser);
