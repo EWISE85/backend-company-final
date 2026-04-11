@@ -54,7 +54,7 @@ namespace ElecWasteCollection.Application.Services
 					UserId = Guid.NewGuid(),
 					Avatar = null,
 					Name = "Admin " + smallCollectionPoints.Name,
-					Role = UserRole.AdminCompany.ToString(),
+					Role = UserRole.AdminWarehouse.ToString(),
 					Status = UserStatus.DANG_HOAT_DONG.ToString(),
 					CollectionCompanyId = smallCollectionPoints.CompanyId,
                     SmallCollectionPointsId = smallCollectionPoints.SmallCollectionPointsId,
