@@ -57,7 +57,8 @@ namespace ElecWasteCollection.Application.Services
 					Role = UserRole.AdminWarehouse.ToString(),
 					Status = UserStatus.DANG_HOAT_DONG.ToString(),
 					CollectionCompanyId = smallCollectionPoints.CompanyId,
-                    SmallCollectionPointsId = smallCollectionPoints.SmallCollectionPointsId,
+					CreateAt = DateTime.UtcNow,
+					SmallCollectionPointsId = smallCollectionPoints.SmallCollectionPointsId,
 				};
 				await _unitOfWork.Users.AddAsync(newAdminWarehouse);
 				var adminAccount = new Account
