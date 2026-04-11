@@ -34,7 +34,7 @@ namespace ElecWasteCollection.Application.Services
 			return true;
 		}
 
-		public async Task<ImportResult> CheckAndUpdateSmallCollectionPointAsync(SmallCollectionPoints smallCollectionPoints, string adminUsername, string adminPassword)
+		public async Task<ImportResult> CheckAndUpdateSmallCollectionPointAsync(SmallCollectionPoints smallCollectionPoints, string adminUsername, string adminPassword, string email)
 		{
 			var result = new ImportResult();
 
@@ -53,6 +53,7 @@ namespace ElecWasteCollection.Application.Services
 				{
 					UserId = Guid.NewGuid(),
 					Avatar = null,
+					Email = email,
 					Name = "Admin " + smallCollectionPoints.Name,
 					Role = UserRole.AdminWarehouse.ToString(),
 					Status = UserStatus.DANG_HOAT_DONG.ToString(),

@@ -506,7 +506,7 @@ Ban Quản Trị Hệ Thống";
 					Created_At = DateTime.UtcNow,
 					Updated_At = DateTime.UtcNow
 				};
-				var importResult = await _smallCollectionPointService.CheckAndUpdateSmallCollectionPointAsync(smallCollectionPoint, adminUsername, adminPassword);
+				var importResult = await _smallCollectionPointService.CheckAndUpdateSmallCollectionPointAsync(smallCollectionPoint, adminUsername, adminPassword, email);
 				result.Messages.AddRange(importResult.Messages);
 				if (importResult.IsNew)
 				{
