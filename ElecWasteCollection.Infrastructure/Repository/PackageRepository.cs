@@ -129,7 +129,7 @@ namespace ElecWasteCollection.Infrastructure.Repository
 
 			if (!string.IsNullOrEmpty(recyclerId))
 			{
-				query = query.Where(p => p.SmallCollectionPoints.CompanyId == recyclerId);
+				query = query.Where(p => p.SmallCollectionPoints.RecyclingCompanyId == recyclerId);
 			}
 
 			if (!string.IsNullOrEmpty(status))
