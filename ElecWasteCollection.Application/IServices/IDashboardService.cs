@@ -14,5 +14,9 @@ namespace ElecWasteCollection.Application.IServices
         Task<PackageDashboardResponse> GetPackageDashboardStats(string smallCollectionPointId, DateOnly from, DateOnly to);
         Task<SCPDashboardSummaryModel> GetSCPDashboardSummary(string smallCollectionPointId, DateOnly from, DateOnly to);
         Task<SCPDashboardSummaryModel> GetSCPDashboardSummaryByDay(string smallCollectionPointId, DateOnly date);
+        Task<BrandDashboardResponse> GetBrandDashboardStats(string scpId, DateOnly from, DateOnly to);
+        Task<BrandDashboardResponse> GetBrandDashboardStatsByDay(string scpId, DateOnly date);
+        Task<List<TopUserContributionModel>> GetTopUsers(string scpId, int top, DateOnly from, DateOnly to);
+        Task<List<UserProductDetailModel>> GetUserProducts(Guid userId);
     }
 }

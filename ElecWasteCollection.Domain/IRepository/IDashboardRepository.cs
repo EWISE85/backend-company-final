@@ -15,5 +15,8 @@ namespace ElecWasteCollection.Domain.IRepository
         Task<List<DateTime>> GetPackageCreationDatesByScpIdAsync(string scpId, DateTime fromUtc, DateTime toUtc);
         Task<int> CountProductsByScpIdAsync(string scpId, DateOnly from, DateOnly to);
         Task<Dictionary<string, int>> GetProductCountsByCategoryByScpIdAsync(string scpId, DateOnly from, DateOnly to);
+        Task<Dictionary<string, int>> GetProductCountsByBrandByScpIdAsync(string scpId, DateOnly from, DateOnly to);
+        Task<List<(Guid UserId, string Name, string Email, int Count)>> GetTopContributingUsersRawAsync(string scpId, int top, DateOnly from, DateOnly to);
+        Task<List<(Guid ProductId, string CategoryName, string BrandName, string Status, DateOnly? CreateAt)>> GetProductsByUserIdRawAsync(Guid userId);
     }
 }
