@@ -83,7 +83,8 @@ namespace ElecWasteCollection.Application.Model
         public Guid UserId { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
-        public int TotalProducts { get; set; }
+        public int TotalProducts { get; set; } 
+        public double TotalPoints { get; set; } 
     }
 
     public class UserProductDetailModel
@@ -92,6 +93,7 @@ namespace ElecWasteCollection.Application.Model
         public string ProductName { get; set; }
         public string BrandName { get; set; }
         public string Status { get; set; }
+        public double Point { get; set; } 
         public DateOnly? CreateAt { get; set; }
     }
 }

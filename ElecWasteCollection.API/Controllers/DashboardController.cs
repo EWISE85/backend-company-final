@@ -102,6 +102,19 @@ namespace ElecWasteCollection.API.Controllers
                 return StatusCode(500, $"Internal Server Error: {ex.Message}");
             }
         }
+        [HttpGet("system/brands/summary")]
+        public async Task<IActionResult> GetGlobalStats([FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        {
+            var result = await _dashboardService.GetGlobalBrandDashboardStats(from, to);
+            return Ok(result);
+        }
+
+        [HttpGet("system/brands/by-day")]
+        public async Task<IActionResult> GetGlobalByDay([FromQuery] DateOnly date)
+        {
+            var result = await _dashboardService.GetGlobalBrandDashboardStatsByDay(date);
+            return Ok(result);
+        }
         [HttpGet("scp/{scpId}/brands/summary")]
         public async Task<IActionResult> GetBrandStats(string scpId, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
         {
@@ -114,17 +127,26 @@ namespace ElecWasteCollection.API.Controllers
             var result = await _dashboardService.GetBrandDashboardStatsByDay(scpId, date);
             return Ok(result);
         }
-        [HttpGet("scp/{scpId}/top-users")]
-        public async Task<IActionResult> GetTopUsers(string scpId, [FromQuery] int top, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        [HttpGet("scp/{scpId}/topUser")]
+        public async Task<IActionResult> GetTopContributors(string scpId, [FromQuery] int top, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
         {
             var result = await _dashboardService.GetTopUsers(scpId, top, from, to);
             return Ok(result);
         }
-
-        [HttpGet("user/{userId}/products")]
-        public async Task<IActionResult> GetUserProducts(Guid userId)
+        [HttpGet("topUser/all")]
+        public async Task<IActionResult> GetGlobalTopContributors(
+        [FromQuery] int top,
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to)
         {
-            var result = await _dashboardService.GetUserProducts(userId);
+            var result = await _dashboardService.GetGlobalTopUsers(top, from, to);
+            return Ok(result);
+        }
+
+        [HttpGet("user/{userId}/topUserdetails")]
+        public async Task<IActionResult> GetDetails(Guid userId)
+        {
+            var result = await _dashboardService.GetUserProductDetails(userId);
             return Ok(result);
         }
     }
