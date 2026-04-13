@@ -126,6 +126,12 @@ namespace ElecWasteCollection.API.Controllers
 			var users = await _userService.AdminFilterUser(model);
 			return Ok(users);
 		}
+		[HttpGet("filter-by-radius")]
+		public async Task<IActionResult> FilterUserByRadius([FromQuery] string smallCollectionPointId, [FromQuery] int page = 1, [FromQuery] int limit = 10)
+		{
+			var result = await _userService.FilterUserByRadius(smallCollectionPointId, page, limit);
+			return Ok(result);
+		}
 
 	}
 }
