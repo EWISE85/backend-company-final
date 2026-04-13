@@ -102,5 +102,30 @@ namespace ElecWasteCollection.API.Controllers
                 return StatusCode(500, $"Internal Server Error: {ex.Message}");
             }
         }
+        [HttpGet("scp/{scpId}/brands/summary")]
+        public async Task<IActionResult> GetBrandStats(string scpId, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        {
+            var result = await _dashboardService.GetBrandDashboardStats(scpId, from, to);
+            return Ok(result);
+        }
+        [HttpGet("scp/{scpId}/brands/by-day")]
+        public async Task<IActionResult> GetBrandStatsByDay(string scpId, [FromQuery] DateOnly date)
+        {
+            var result = await _dashboardService.GetBrandDashboardStatsByDay(scpId, date);
+            return Ok(result);
+        }
+        [HttpGet("scp/{scpId}/top-users")]
+        public async Task<IActionResult> GetTopUsers(string scpId, [FromQuery] int top, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        {
+            var result = await _dashboardService.GetTopUsers(scpId, top, from, to);
+            return Ok(result);
+        }
+
+        [HttpGet("user/{userId}/products")]
+        public async Task<IActionResult> GetUserProducts(Guid userId)
+        {
+            var result = await _dashboardService.GetUserProducts(userId);
+            return Ok(result);
+        }
     }
 }
