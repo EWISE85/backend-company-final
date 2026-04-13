@@ -7,32 +7,32 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace ElecWasteCollection.API.Controllers
 {
-	[Authorize]
-	[Route("api/dashboard")]
-	[ApiController]
-	public class DashboardController : ControllerBase
-	{
-		private readonly IDashboardService _dashboardService;
-		public DashboardController(IDashboardService dashboardService)
-		{
-			_dashboardService = dashboardService;
-		}
-		[HttpGet("summary")]
-		public async Task<IActionResult> GetDashboardSummary([FromQuery] DateOnly from, [FromQuery] DateOnly to)
-		{
-			var summary = await _dashboardService.GetDashboardSummary(from, to);
-			return Ok(summary);
-		}
+    [Authorize]
+    [Route("api/dashboard")]
+    [ApiController]
+    public class DashboardController : ControllerBase
+    {
+        private readonly IDashboardService _dashboardService;
+        public DashboardController(IDashboardService dashboardService)
+        {
+            _dashboardService = dashboardService;
+        }
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetDashboardSummary([FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        {
+            var summary = await _dashboardService.GetDashboardSummary(from, to);
+            return Ok(summary);
+        }
 
         [HttpGet("summary/day")]
-        public async Task<IActionResult> GetDashboardSummaryByDay( [FromQuery] DateOnly date)
+        public async Task<IActionResult> GetDashboardSummaryByDay([FromQuery] DateOnly date)
         {
             var result = await _dashboardService.GetDashboardSummaryByDay(date);
             return Ok(result);
         }
 
         [HttpGet("packages-stats")]
-        public async Task<IActionResult> GetDashboardStats( [FromQuery] string smallCollectionPointId, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
+        public async Task<IActionResult> GetDashboardStats([FromQuery] string smallCollectionPointId, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
         {
             if (string.IsNullOrWhiteSpace(smallCollectionPointId))
             {
@@ -115,6 +115,16 @@ namespace ElecWasteCollection.API.Controllers
             var result = await _dashboardService.GetGlobalBrandDashboardStatsByDay(date);
             return Ok(result);
         }
+        [HttpGet("system/topUser/all")]
+        public async Task<IActionResult> GetGlobalTopContributors(
+            [FromQuery] int top,
+            [FromQuery] DateOnly from,
+            [FromQuery] DateOnly to)
+        {
+            var result = await _dashboardService.GetGlobalTopUsers(top, from, to);
+            return Ok(result);
+        }
+
         [HttpGet("scp/{scpId}/brands/summary")]
         public async Task<IActionResult> GetBrandStats(string scpId, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
         {
@@ -131,15 +141,6 @@ namespace ElecWasteCollection.API.Controllers
         public async Task<IActionResult> GetTopContributors(string scpId, [FromQuery] int top, [FromQuery] DateOnly from, [FromQuery] DateOnly to)
         {
             var result = await _dashboardService.GetTopUsers(scpId, top, from, to);
-            return Ok(result);
-        }
-        [HttpGet("topUser/all")]
-        public async Task<IActionResult> GetGlobalTopContributors(
-        [FromQuery] int top,
-        [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to)
-        {
-            var result = await _dashboardService.GetGlobalTopUsers(top, from, to);
             return Ok(result);
         }
 
