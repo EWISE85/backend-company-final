@@ -42,7 +42,8 @@ namespace ElecWasteCollection.Domain.Entities
 		TIME_TO_CHANGE_STATUS_ROUTE,
 		FORMAT_IMPORT_VOUCHER,
 		FORMAT_IMPORT_HOLIDAY,
-        CONFIG_TIME_ABLE_TO_POST
+        CONFIG_TIME_ABLE_TO_POST,
+		RADIUS_FOR_USER_FILTER
 	}
 	public class SystemConfig
     {

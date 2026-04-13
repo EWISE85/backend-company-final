@@ -303,5 +303,49 @@ namespace ElecWasteCollection.Application.Services
 			};
 			return userPointModel;
 		}
+
+		public async Task<PagedResultModel<UserResponse>> FilterUserByRadius(string smallCollectionPointId, int page = 1, int limit = 10)
+		{
+			var warehouse = await _unitOfWork.SmallCollectionPoints
+							.GetAsync(w => w.SmallCollectionPointsId == smallCollectionPointId);
+			if (warehouse == null)
+			{
+				throw new AppException("Không tìm thấy điểm thu gom nhỏ", 404);
+			}
+			var radiusConfig = await _unitOfWork.SystemConfig
+				.GetAsync(c => c.Key == SystemConfigKey.RADIUS_FOR_USER_FILTER.ToString()
+									   && c.Status == SystemConfigStatus.DANG_HOAT_DONG.ToString());
+			if (radiusConfig == null)
+			{
+				throw new AppException("Không tìm thấy cấu hình bán kính", 404);
+			}
+			double radiusKm = 5.0;
+			if (radiusConfig != null && double.TryParse(radiusConfig.Value, out double parsedRadius))
+			{
+				radiusKm = parsedRadius;
+			}
+			var (users, totalItems) = await _userRepository.GetUsersByRadiusAsync(
+				warehouse.Latitude,
+				warehouse.Longitude,
+				radiusKm,
+				page,
+				limit);
+			var userResponses = users.Select(user => new UserResponse
+			{
+				UserId = user.UserId,
+				Name = user.Name,
+				Email = user.Email,
+				Phone = user.Phone,
+				Avatar = user.Avatar,
+				Points = user.Points,
+				Role = user.Role,
+				SmallCollectionPointId = user.SmallCollectionPointsId,
+				CollectionCompanyId = user.CollectionCompanyId,
+				CreateAt = user.CreateAt,
+				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<UserStatus>(user.Status).ToString()
+			}).ToList();
+
+			return new PagedResultModel<UserResponse>(userResponses, page, limit, totalItems);
+		}
 	}
 }
