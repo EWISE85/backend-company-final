@@ -82,7 +82,7 @@ namespace ElecWasteCollection.Application.Services
 					{
 						await ImportCompanyAsync(worksheet, result);
 					}
-					else if (importType.Equals("SmallCollectionPoints", StringComparison.OrdinalIgnoreCase))
+					else if (importType.Equals("SmallCollectionPoint", StringComparison.OrdinalIgnoreCase))
 					{
 						await ImportSmallCollectionPointAsync(worksheet, result);
 					}
@@ -406,6 +406,7 @@ namespace ElecWasteCollection.Application.Services
                     SmallCollectionPointsId = smallCollectionPointId,
 					CollectionCompanyId = companyId,
 					Role = UserRole.Collector.ToString(),
+					CreateAt = DateTime.UtcNow,
 					Status = statusToSave, 
 				};
 				var importResult = await _collectorService.CheckAndUpdateCollectorAsync(collector, collectorUsername, collectorPassword);
@@ -505,7 +506,7 @@ Ban Quản Trị Hệ Thống";
 					Created_At = DateTime.UtcNow,
 					Updated_At = DateTime.UtcNow
 				};
-				var importResult = await _smallCollectionPointService.CheckAndUpdateSmallCollectionPointAsync(smallCollectionPoint, adminUsername, adminPassword);
+				var importResult = await _smallCollectionPointService.CheckAndUpdateSmallCollectionPointAsync(smallCollectionPoint, adminUsername, adminPassword, email);
 				result.Messages.AddRange(importResult.Messages);
 				if (importResult.IsNew)
 				{
