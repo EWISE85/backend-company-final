@@ -269,11 +269,9 @@ namespace ElecWasteCollection.Application.Services
             DateOnly prevFromDate = from.AddMonths(-1);
             DateOnly prevToDate = to.AddMonths(-1);
 
-            // Lấy tổng sản phẩm để tính Metric chung
             var currTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, from, to);
             var prevTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, prevFromDate, prevToDate);
 
-            // Lấy Dictionary sản phẩm theo Brand
             var currBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, from, to);
             var prevBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, prevFromDate, prevToDate);
 
@@ -287,23 +285,85 @@ namespace ElecWasteCollection.Application.Services
             };
         }
 
-        // 2. Thống kê theo ngày cụ thể (By Day)
-        public async Task<BrandDashboardResponse> GetBrandDashboardStatsByDay(string scpId, DateOnly date)
+            public async Task<BrandDashboardResponse> GetBrandDashboardStatsByDay(string scpId, DateOnly date)
+            {
+                var cleanId = scpId.Trim();
+                DateOnly prevDate = date.AddDays(-1);
+
+                var currTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, date, date);
+                var prevTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, prevDate, prevDate);
+
+                var currBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, date, date);
+                var prevBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, prevDate, prevDate);
+
+                return new BrandDashboardResponse
+                {
+                    SmallCollectionPointId = cleanId,
+                    FromDate = date,
+                    ToDate = date,
+                    TotalProducts = CalculateMetric(currTotal, prevTotal),
+                    Brands = ProcessBrandStats(currBrandDict, prevBrandDict)
+                };
+            }
+
+            private List<BrandStatisticExtendedModel> ProcessBrandStats(Dictionary<string, int> currDict, Dictionary<string, int> prevDict)
+            {
+                var allBrands = currDict.Keys.Union(prevDict.Keys).Distinct();
+                var results = new List<BrandStatisticExtendedModel>();
+
+                foreach (var name in allBrands)
+                {
+                    int currVal = currDict.GetValueOrDefault(name, 0);
+                    int prevVal = prevDict.GetValueOrDefault(name, 0);
+
+                    var metric = CalculateMetric(currVal, prevVal);
+
+                    results.Add(new BrandStatisticExtendedModel
+                    {
+                        BrandName = name,
+                        CurrentValue = metric.CurrentValue,
+                        PreviousValue = metric.PreviousValue,
+                        AbsoluteChange = metric.AbsoluteChange,
+                        PercentChange = metric.PercentChange,
+                        Trend = metric.Trend
+                    });
+                }
+                return results.OrderByDescending(x => x.CurrentValue).ToList();
+            }
+        public async Task<BrandDashboardResponse> GetGlobalBrandDashboardStats(DateOnly from, DateOnly to)
         {
-            var cleanId = scpId.Trim();
-            DateOnly prevDate = date.AddDays(-1);
+            DateOnly prevFromDate = from.AddMonths(-1);
+            DateOnly prevToDate = to.AddMonths(-1);
 
-            // Lấy tổng sản phẩm ngày hiện tại và ngày trước đó
-            var currTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, date, date);
-            var prevTotal = await _dashboardRepository.CountProductsByScpIdAsync(cleanId, prevDate, prevDate);
+            var currTotal = await _dashboardRepository.CountProductsAsync(from, to);
+            var prevTotal = await _dashboardRepository.CountProductsAsync(prevFromDate, prevToDate);
 
-            // Lấy chi tiết Brand ngày hiện tại và ngày trước đó
-            var currBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, date, date);
-            var prevBrandDict = await _dashboardRepository.GetProductCountsByBrandByScpIdAsync(cleanId, prevDate, prevDate);
+            var currBrandDict = await _dashboardRepository.GetProductCountsByBrandAsync(from, to);
+            var prevBrandDict = await _dashboardRepository.GetProductCountsByBrandAsync(prevFromDate, prevToDate);
 
             return new BrandDashboardResponse
             {
-                SmallCollectionPointId = cleanId,
+                SmallCollectionPointId = "ALL", 
+                FromDate = from,
+                ToDate = to,
+                TotalProducts = CalculateMetric(currTotal, prevTotal),
+                Brands = ProcessBrandStats(currBrandDict, prevBrandDict)
+            };
+        }
+
+        public async Task<BrandDashboardResponse> GetGlobalBrandDashboardStatsByDay(DateOnly date)
+        {
+            DateOnly prevDate = date.AddDays(-1);
+
+            var currTotal = await _dashboardRepository.CountProductsAsync(date, date);
+            var prevTotal = await _dashboardRepository.CountProductsAsync(prevDate, prevDate);
+
+            var currBrandDict = await _dashboardRepository.GetProductCountsByBrandAsync(date, date);
+            var prevBrandDict = await _dashboardRepository.GetProductCountsByBrandAsync(prevDate, prevDate);
+
+            return new BrandDashboardResponse
+            {
+                SmallCollectionPointId = "ALL",
                 FromDate = date,
                 ToDate = date,
                 TotalProducts = CalculateMetric(currTotal, prevTotal),
@@ -311,56 +371,43 @@ namespace ElecWasteCollection.Application.Services
             };
         }
 
-        // Hàm xử lý so sánh dữ liệu giữa 2 kỳ cho danh sách Brand
-        private List<BrandStatisticExtendedModel> ProcessBrandStats(Dictionary<string, int> currDict, Dictionary<string, int> prevDict)
-        {
-            var allBrands = currDict.Keys.Union(prevDict.Keys).Distinct();
-            var results = new List<BrandStatisticExtendedModel>();
-
-            foreach (var name in allBrands)
-            {
-                int currVal = currDict.GetValueOrDefault(name, 0);
-                int prevVal = prevDict.GetValueOrDefault(name, 0);
-
-                var metric = CalculateMetric(currVal, prevVal);
-
-                results.Add(new BrandStatisticExtendedModel
-                {
-                    BrandName = name,
-                    CurrentValue = metric.CurrentValue,
-                    PreviousValue = metric.PreviousValue,
-                    AbsoluteChange = metric.AbsoluteChange,
-                    PercentChange = metric.PercentChange,
-                    Trend = metric.Trend
-                });
-            }
-            return results.OrderByDescending(x => x.CurrentValue).ToList();
-        }
         public async Task<List<TopUserContributionModel>> GetTopUsers(string scpId, int top, DateOnly from, DateOnly to)
         {
-            // Gọi repo với scpId
-            var rawData = await _dashboardRepository.GetTopContributingUsersRawAsync(scpId, top, from, to);
-
-            return rawData.Select(x => new TopUserContributionModel
+            var raw = await _dashboardRepository.GetTopUserStatsRawAsync(scpId, top, from, to);
+            return raw.Select(x => new TopUserContributionModel
             {
-                UserId = x.Item1,
-                Name = x.Item2,
-                Email = x.Item3,
-                TotalProducts = x.Item4
+                UserId = x.UserId,
+                Name = x.Name,
+                Email = x.Email,
+                TotalProducts = x.ProductCount,
+                TotalPoints = x.TotalPoints
+            }).ToList();
+        }
+        public async Task<List<TopUserContributionModel>> GetGlobalTopUsers(int top, DateOnly from, DateOnly to)
+        {
+            var raw = await _dashboardRepository.GetGlobalTopUserStatsRawAsync(top, from, to);
+
+            return raw.Select(x => new TopUserContributionModel
+            {
+                UserId = x.UserId,
+                Name = x.Name,
+                Email = x.Email,
+                TotalProducts = x.ProductCount,
+                TotalPoints = x.TotalPoints
             }).ToList();
         }
 
-        public async Task<List<UserProductDetailModel>> GetUserProducts(Guid userId)
+        public async Task<List<UserProductDetailModel>> GetUserProductDetails(Guid userId)
         {
-            var rawData = await _dashboardRepository.GetProductsByUserIdRawAsync(userId);
-
-            return rawData.Select(x => new UserProductDetailModel
+            var raw = await _dashboardRepository.GetUserProductDetailsRawAsync(userId);
+            return raw.Select(x => new UserProductDetailModel
             {
-                ProductId = x.Item1,
-                ProductName = x.Item2,
-                BrandName = x.Item3,
-                Status = x.Item4,
-                CreateAt = x.Item5
+                ProductId = x.ProductId,
+                ProductName = x.CategoryName,
+                BrandName = x.BrandName,
+                Status = x.Status,
+                Point = x.Point,
+                CreateAt = x.CreateAt
             }).ToList();
         }
     }
