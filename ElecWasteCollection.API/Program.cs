@@ -202,6 +202,8 @@ namespace ElecWasteCollection.API
             builder.Services.AddScoped<ICollectionOffDayService, CollectionOffDayService>();
 			builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
             builder.Services.AddMemoryCache();
+			builder.Services.AddHostedService<VoucherExpirationWorker>();
+
 			builder.Services.AddCors(options =>
 			{
 				options.AddPolicy("AllowAll", policy =>

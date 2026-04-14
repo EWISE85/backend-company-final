@@ -372,5 +372,25 @@ namespace ElecWasteCollection.Application.Services
 			}
 
 		}
+		public async Task UpdateExpiredVouchersAsync()
+		{
+			var currentDate = DateOnly.FromDateTime(DateTime.Now);
+
+			var expiredVouchers = await _voucherRepository.GetAllAsync(
+				filter: v => v.Status == VoucherStatus.HOAT_DONG.ToString() && v.EndAt < currentDate
+			);
+
+			if (expiredVouchers.Any())
+			{
+				foreach (var voucher in expiredVouchers)
+				{
+					voucher.Status = VoucherStatus.HET_HAN.ToString();
+
+					_unitOfWork.Vouchers.Update(voucher);
+				}
+
+				await _unitOfWork.SaveAsync();
+			}
+		}
 	}
 }
