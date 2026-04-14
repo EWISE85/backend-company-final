@@ -5,6 +5,7 @@ using ElecWasteCollection.Application.IServices;
 using ElecWasteCollection.Application.Model;
 using ElecWasteCollection.Domain.Entities;
 using ElecWasteCollection.Domain.IRepository;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -153,7 +154,11 @@ namespace ElecWasteCollection.Application.Services
 
 		public async Task<List<SmallCollectionPointsResponse>> GetSmallCollectionPointActive()
 		{
-			var smallPoints = await _smallCollectionRepository.GetAllAsync(s => s.Status == SmallCollectionPointStatus.DANG_HOAT_DONG.ToString());
+			var smallPoints = await _smallCollectionRepository.GetAllAsync(
+				filter: s => s.Status == SmallCollectionPointStatus.DANG_HOAT_DONG.ToString(),
+				includeProperties: "RecyclingCompany.CompanyRecyclingCategories.Category.SubCategories"
+			);
+
 			return smallPoints.Select(point => new SmallCollectionPointsResponse
 			{
 				Id = point.SmallCollectionPointsId,
@@ -163,7 +168,18 @@ namespace ElecWasteCollection.Application.Services
 				Latitude = point.Latitude,
 				Longitude = point.Longitude,
 				OpenTime = point.OpenTime,
-				Status = point.Status
+				Status = point.Status,
+				CompanyName = point.CollectionCompany?.Name,
+
+				AcceptedCategories = point.RecyclingCompany?.CompanyRecyclingCategories
+					.Where(crc => crc.Category.Status == CategoryStatus.HOAT_DONG.ToString())
+					.SelectMany(crc => crc.Category.SubCategories) 
+					.Where(sub => sub.Status == CategoryStatus.HOAT_DONG.ToString()) 
+					.Select(sub => new CategoryModel
+					{
+						Id = sub.CategoryId,
+						Name = sub.Name
+					}).ToList() ?? new List<CategoryModel>()
 			}).ToList();
 		}
 
