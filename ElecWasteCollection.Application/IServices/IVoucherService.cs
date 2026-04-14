@@ -28,5 +28,6 @@ namespace ElecWasteCollection.Application.IServices
         Task<bool> UpdateVoucher(CreateVoucherModel model, Guid voucherId);
         Task<bool> UnActiveVoucher(Guid voucherId);
         Task<bool> ActiveVoucher(Guid voucherId);
+		Task UpdateExpiredVouchersAsync();
 	}
 }
