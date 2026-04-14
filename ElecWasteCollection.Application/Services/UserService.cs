@@ -67,7 +67,7 @@ namespace ElecWasteCollection.Application.Services
 			await _unitOfWork.SaveAsync();
 		}
 
-		public async Task<UserResponse>? GetById(Guid id)
+		public async Task<UserResponse> GetById(Guid id)
 		{
 			var user = await _userRepository.GetAsync(u => u.UserId == id);
 			if (user == null) throw new AppException("User không tồn tại", 404);
@@ -79,6 +79,8 @@ namespace ElecWasteCollection.Application.Services
 				Phone = user.Phone,
 				Avatar = user.Avatar,
 				Role = user.Role,
+				CreateAt = user.CreateAt,
+				Points = user.Points,
 				SmallCollectionPointId = user.SmallCollectionPointsId,
 				CollectionCompanyId = user.CollectionCompanyId,
 				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<UserStatus>(user.Status).ToString()
@@ -346,6 +348,19 @@ namespace ElecWasteCollection.Application.Services
 			}).ToList();
 
 			return new PagedResultModel<UserResponse>(userResponses, page, limit, totalItems);
+		}
+
+		public async Task<bool> UpdatePointForUserByAdminSystem(Guid userId, double pointToAdd)
+		{
+			var user = await _userRepository.GetAsync(u => u.UserId == userId);
+			if (user == null)
+			{
+				throw new AppException("Không tìm thấy người dùng", 404);
+			}
+			user.Points = pointToAdd;
+			_unitOfWork.Users.Update(user);
+			await _unitOfWork.SaveAsync();
+			return true;
 		}
 	}
 }

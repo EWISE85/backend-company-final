@@ -132,6 +132,16 @@ namespace ElecWasteCollection.API.Controllers
 			var result = await _userService.FilterUserByRadius(smallCollectionPointId, page, limit);
 			return Ok(result);
 		}
+		[HttpPatch("point/{userId}")]
+		public async Task<IActionResult> UpdatePointForUserByAdminSystem([FromRoute] Guid userId, [FromQuery] double pointToAdd)
+		{
+			var result = await _userService.UpdatePointForUserByAdminSystem(userId, pointToAdd);
+			if (!result)
+			{
+				return BadRequest(new { message = "Failed to update points for user." });
+			}
+			return Ok(new { message = "Points updated successfully for user." });
+		}
 
-	}
+		}
 }

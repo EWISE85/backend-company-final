@@ -11,7 +11,9 @@ namespace ElecWasteCollection.Application.IServices
     public interface  IVoucherService
     {
         Task<PagedResultModel<VoucherModel>> GetPagedVouchers(VoucherQueryModel model);
-        Task<bool> CreateVoucher(CreateVoucherModel model);
+		Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model);
+
+		Task<bool> CreateVoucher(CreateVoucherModel model);
 
         Task<VoucherModel> GetVoucherById(Guid id);
 
@@ -22,5 +24,9 @@ namespace ElecWasteCollection.Application.IServices
         Task UpdateFormatExcel(Guid systemConfigId, IFormFile formFile);
 
         Task<ImportResult> CheckAndUpdateVoucherAsync(CreateVoucherModel model);
+
+        Task<bool> UpdateVoucher(CreateVoucherModel model, Guid voucherId);
+        Task<bool> UnActiveVoucher(Guid voucherId);
+        Task<bool> ActiveVoucher(Guid voucherId);
 	}
 }

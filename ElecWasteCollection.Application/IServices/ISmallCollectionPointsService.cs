@@ -24,6 +24,8 @@ namespace ElecWasteCollection.Application.IServices
 		Task<PagedResultModel<SmallCollectionPointsResponse>> GetPagedSmallCollectionPointsAsync(SmallCollectionSearchModel model);
 
 		Task<List<SmallCollectionPointsResponse>> GetSmallCollectionPointActive();
+		Task<bool> UnActive(string id);
+		Task<bool> Active(string id);
 
 	}
 }

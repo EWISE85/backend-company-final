@@ -7,6 +7,7 @@ using ElecWasteCollection.Application.Model;
 using ElecWasteCollection.Domain.Entities;
 using ElecWasteCollection.Domain.IRepository;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +32,19 @@ namespace ElecWasteCollection.Application.Services
 			_cloudinaryService = cloudinaryService;
 		}
 
+		public async Task<bool> ActiveVoucher(Guid voucherId)
+		{
+			var voucher = await _voucherRepository.GetAsync(v => v.VoucherId == voucherId);
+			if (voucher == null)
+			{
+				throw new AppException("Không tìm thấy voucher", 404);
+			}
+			voucher.Status = VoucherStatus.HOAT_DONG.ToString();
+			_unitOfWork.Vouchers.Update(voucher);
+			var result = await _unitOfWork.SaveAsync();
+			return result > 0;
+		}
+
 		public async Task<ImportResult> CheckAndUpdateVoucherAsync(CreateVoucherModel model)
 		{
 			var result = new ImportResult();
@@ -53,6 +67,7 @@ namespace ElecWasteCollection.Application.Services
 					existingVoucher.StartAt = model.StartAt;
 					existingVoucher.EndAt = model.EndAt;
 					existingVoucher.Value = model.Value;
+					existingVoucher.Quantity = model.Quantity;
 					existingVoucher.PointsToRedeem = model.PointsToRedeem;
 
 					if (!string.IsNullOrEmpty(model.Status))
@@ -78,6 +93,7 @@ namespace ElecWasteCollection.Application.Services
 						StartAt = model.StartAt,
 						EndAt = model.EndAt,
 						Value = model.Value,
+						Quantity = model.Quantity,
 						PointsToRedeem = model.PointsToRedeem,
 						Status = string.IsNullOrEmpty(model.Status) ? VoucherStatus.HOAT_DONG.ToString() : model.Status
 					};
@@ -119,6 +135,7 @@ namespace ElecWasteCollection.Application.Services
 				StartAt = model.StartAt,
 				EndAt = model.EndAt,
 				Value = model.Value,
+				Quantity = model.Quantity,
 				PointsToRedeem = model.PointsToRedeem,
 				Status = VoucherStatus.HOAT_DONG.ToString()
 			};
@@ -145,6 +162,7 @@ namespace ElecWasteCollection.Application.Services
 				StartAt = v.StartAt,
 				EndAt = v.EndAt,
 				Value = v.Value,
+				Quantity = v.Quantity,
 				PointsToRedeem = v.PointsToRedeem,
 				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<VoucherStatus>(v.Status)
 			}).ToList();
@@ -185,6 +203,36 @@ namespace ElecWasteCollection.Application.Services
 			);
 		}
 
+		public async Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model)
+		{
+			string? statusEnum = null;
+			if (!string.IsNullOrEmpty(model.Status))
+			{
+				statusEnum = StatusEnumHelper.GetValueFromDescription<VoucherStatus>(model.Status).ToString();
+			}
+			var (vouchers, totalCount) = await _voucherRepository.GetPagedVoucherForUser(model.Name, statusEnum, model.PageNumber, model.Limit);
+			var voucherModels = vouchers.Select(v => new VoucherModel
+			{
+				VoucherId = v.VoucherId,
+				Code = v.Code,
+				Name = v.Name,
+				Description = v.Description,
+				ImageUrl = v.ImageUrl,
+				StartAt = v.StartAt,
+				EndAt = v.EndAt,
+				Value = v.Value,
+				Quantity = v.Quantity,
+				PointsToRedeem = v.PointsToRedeem,
+				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<VoucherStatus>(v.Status)
+			}).ToList();
+			return new PagedResultModel<VoucherModel>(
+				voucherModels,
+				model.PageNumber,
+				model.Limit,
+				totalCount
+			);
+		}
+
 		public async Task<VoucherModel> GetVoucherById(Guid id)
 		{
 			var voucher = await _voucherRepository.GetAsync(v => v.VoucherId == id);
@@ -203,9 +251,23 @@ namespace ElecWasteCollection.Application.Services
 				EndAt = voucher.EndAt,
 				Value = voucher.Value,
 				PointsToRedeem = voucher.PointsToRedeem,
+				Quantity = voucher.Quantity,
 				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<VoucherStatus>(voucher.Status)
 			};
 
+		}
+
+		public async Task<bool> UnActiveVoucher(Guid voucherId)
+		{
+			var voucher = await _voucherRepository.GetAsync(v => v.VoucherId == voucherId);
+			if (voucher == null)
+			{
+				throw new AppException("Không tìm thấy voucher", 404);
+			}
+			voucher.Status = VoucherStatus.KHONG_HOAT_DONG.ToString();
+			_unitOfWork.Vouchers.Update(voucher);
+			var result = await _unitOfWork.SaveAsync();
+			return result > 0;
 		}
 
 		public async Task UpdateFormatExcel(Guid systemConfigId, IFormFile formFile)
@@ -231,6 +293,31 @@ namespace ElecWasteCollection.Application.Services
 			await _unitOfWork.SaveAsync();
 		}
 
+		public async Task<bool> UpdateVoucher(CreateVoucherModel model, Guid voucherId)
+		{
+			var voucher = await _voucherRepository.GetAsync(v => v.VoucherId == voucherId);
+			if (voucher == null)
+			{
+				throw new AppException("Không tìm thấy voucher", 404);
+			}
+			voucher.Name = model.Name;
+			voucher.Description = model.Description;
+			voucher.ImageUrl = model.ImageUrl;
+			voucher.StartAt = model.StartAt;
+			voucher.EndAt = model.EndAt;
+			voucher.Value = model.Value;
+			voucher.PointsToRedeem = model.PointsToRedeem;
+			voucher.Quantity = model.Quantity;
+			if (!string.IsNullOrEmpty(model.Status))
+			{
+				var statusEnum = StatusEnumHelper.GetValueFromDescription<VoucherStatus>(model.Status);
+				voucher.Status = statusEnum.ToString();
+			}
+			_unitOfWork.Vouchers.Update(voucher);
+			var result = await _unitOfWork.SaveAsync();
+			return result > 0;
+		}
+
 		public async Task<bool> UserReceiveVoucher(Guid userId, Guid voucherId)
 		{
 			var user = await _userRepository.GetAsync(u => u.UserId == userId);
@@ -243,6 +330,15 @@ namespace ElecWasteCollection.Application.Services
 			{
 				throw new AppException("Voucher không tồn tại", 404);
 			}
+			if (isVoucherExist.Quantity <= 0)
+			{
+				throw new AppException("Voucher này đã hết lượt đổi", 400);
+			}
+
+			if (user.Points < isVoucherExist.PointsToRedeem)
+			{
+				throw new AppException("Bạn không đủ điểm để đổi voucher này", 400);
+			}
 			var pointsTransaction = new PointTransactions
 			{
 				UserId = userId,
@@ -253,6 +349,7 @@ namespace ElecWasteCollection.Application.Services
 				Point = -isVoucherExist.PointsToRedeem
 			};
 			user.Points -= isVoucherExist.PointsToRedeem;
+			isVoucherExist.Quantity -= 1;
 			var userVoucher = new UserVoucher
 			{
 				UserId = userId,
@@ -264,8 +361,15 @@ namespace ElecWasteCollection.Application.Services
 			_unitOfWork.PointTransactions.Add(pointsTransaction);
 			_unitOfWork.Users.Update(user);
 			_unitOfWork.UserVouchers.Add(userVoucher);
-			var result = await _unitOfWork.SaveAsync();
-			return result > 0;
+			try
+			{
+				var result = await _unitOfWork.SaveAsync();
+				return result > 0;
+			}
+			catch (DbUpdateConcurrencyException)
+			{
+				throw new AppException("Hệ thống đang có nhiều người đổi, vui lòng thử lại!", 409);
+			}
 
 		}
 	}

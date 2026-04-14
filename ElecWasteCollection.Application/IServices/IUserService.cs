@@ -13,7 +13,7 @@ namespace ElecWasteCollection.Application.IServices
 		void AddUser(User user);
 		void AddRange(IEnumerable<User> newUsers);
 		Task<List<UserResponse>> GetAll();
-		Task<UserResponse>? GetById(Guid id);
+		Task<UserResponse> GetById(Guid id);
 		Task<List<UserResponse>> GetByEmail(string email);
 
 		Task<UserProfileResponse> Profile(Guid userId);
@@ -32,5 +32,7 @@ namespace ElecWasteCollection.Application.IServices
 		Task<bool> UpdatePointForUser(Guid userId, double pointToAdd);
 		Task<UserPointModel> GetPointByUserId(Guid userId);
 		Task<PagedResultModel<UserResponse>> FilterUserByRadius(string smallCollectionPointId, int page = 1, int limit = 10);
+
+		Task<bool> UpdatePointForUserByAdminSystem(Guid userId, double pointToAdd);
 	}
 }
