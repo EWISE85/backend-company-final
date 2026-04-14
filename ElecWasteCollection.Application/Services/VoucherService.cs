@@ -295,7 +295,7 @@ namespace ElecWasteCollection.Application.Services
 
 		public async Task<bool> UpdateVoucher(CreateVoucherModel model, Guid voucherId)
 		{
-			var voucher = await _voucherRepository.GetAsync(v => v.VoucherId == voucherId);
+			var voucher = await _unitOfWork.Vouchers.GetAsync(v => v.VoucherId == voucherId);
 			if (voucher == null)
 			{
 				throw new AppException("Không tìm thấy voucher", 404);
