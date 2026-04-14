@@ -17,5 +17,6 @@
 		public double Value { get; set; }
 
 		public double PointsToRedeem { get; set; }
+		public int Quantity { get; set; }
 	}
 }

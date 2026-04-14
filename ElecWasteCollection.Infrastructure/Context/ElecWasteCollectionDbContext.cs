@@ -514,6 +514,7 @@ namespace ElecWasteCollection.Infrastructure.Context
 				entity.ToTable("Voucher");
 				entity.HasKey(e => e.VoucherId);
 				entity.Property(e => e.VoucherId).ValueGeneratedOnAdd();
+				entity.Property(v => v.Quantity).IsConcurrencyToken();
 			});
 
 			modelBuilder.Entity<UserVoucher>(entity =>

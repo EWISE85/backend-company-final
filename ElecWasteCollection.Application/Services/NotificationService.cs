@@ -187,9 +187,12 @@ namespace ElecWasteCollection.Application.Services
 			}
 			if (allTokens.Any())
 			{
+				var dataPayload = new Dictionary<string, string>
+	{
+	{ "type", "NOTIFICATION"}
+	};
 				_ = Task.Run(async () =>
 				{
-					// Tạo một Scope mới vì đây là luồng độc lập
 					using (var scope = _scopeFactory.CreateScope())
 					{
 						var scopedUnitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -200,8 +203,7 @@ namespace ElecWasteCollection.Application.Services
 							var fcmBatches = allTokens.Distinct().Chunk(500);
 							foreach (var fcmBatch in fcmBatches)
 							{
-								// Lấy danh sách token bị lỗi từ Firebase
-								var failedTokens = await scopedFirebase.SendMulticastAsync(fcmBatch.ToList(), model.Title, model.Message);
+								var failedTokens = await scopedFirebase.SendMulticastAsync(fcmBatch.ToList(), model.Title, model.Message,dataPayload);
 
 								if (failedTokens.Any())
 								{

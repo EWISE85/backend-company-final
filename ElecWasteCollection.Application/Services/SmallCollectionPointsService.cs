@@ -27,6 +27,17 @@ namespace ElecWasteCollection.Application.Services
 			_accountRepository = accountRepository;
 			_smallCollectionRepository = smallCollectionRepository;
 		}
+
+		public async Task<bool> Active(string id)
+		{
+			var smallPoint = await _smallCollectionRepository.GetAsync(s => s.SmallCollectionPointsId == id);
+			if (smallPoint == null) throw new AppException("Không tìm thấy kho", 404);
+			smallPoint.Status = SmallCollectionPointStatus.DANG_HOAT_DONG.ToString();
+			_unitOfWork.SmallCollectionPoints.Update(smallPoint);
+			await _unitOfWork.SaveAsync();
+			return true;
+		}
+
 		public async Task<bool> AddNewSmallCollectionPoint(SmallCollectionPoints smallCollectionPoints)
 		{
 			await _unitOfWork.SmallCollectionPoints.AddAsync(smallCollectionPoints);
@@ -171,6 +182,16 @@ namespace ElecWasteCollection.Application.Services
 				Status = point.Status
 			}).ToList();
 			return result;
+		}
+
+		public async Task<bool> UnActive(string id)
+		{
+			var smallPoint = await _smallCollectionRepository.GetAsync(s => s.SmallCollectionPointsId == id);
+			if (smallPoint == null) throw new AppException("Không tìm thấy kho", 404);
+			smallPoint.Status = SmallCollectionPointStatus.KHONG_HOAT_DONG.ToString();
+			_unitOfWork.SmallCollectionPoints.Update(smallPoint);
+			await _unitOfWork.SaveAsync();
+			return true;
 		}
 
 		public async Task<bool> UpdateSmallCollectionPoint(SmallCollectionPoints smallCollectionPoints)
