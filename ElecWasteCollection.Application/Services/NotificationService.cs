@@ -235,7 +235,7 @@ namespace ElecWasteCollection.Application.Services
 
 				var dataPayload = new Dictionary<string, string>
 		{
-			{ "type", "POST_APPROVED" },
+			{ "type", "SHIPPER_ARRIVAL" },
 			{ "postId", post.PostId.ToString() }
 		};
 
@@ -274,7 +274,7 @@ namespace ElecWasteCollection.Application.Services
 
 				var dataPayload = new Dictionary<string, string>
 		{
-			{ "type", "POST_REJECTED" },
+			{ "type", "SHIPPER_ARRIVAL" },
 			{ "postId", post.PostId.ToString() }
 		};
 
@@ -309,7 +309,7 @@ namespace ElecWasteCollection.Application.Services
 
 			var dataPayload = new Dictionary<string, string>
 	{
-		{ "type", "CO2_SAVED" },
+		{ "type", "NOTIFICATION" },
 		{ "co2Amount", co2Saved.ToString("F2") }
 	};
 
