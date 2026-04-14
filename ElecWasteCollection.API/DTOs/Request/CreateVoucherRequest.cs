@@ -18,5 +18,7 @@
 
 		public double PointsToRedeem { get; set; }
 		public int Quantity { get; set; }
+
+		public string? Status { get; set; }
 	}
 }

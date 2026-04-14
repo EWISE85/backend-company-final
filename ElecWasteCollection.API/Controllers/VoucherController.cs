@@ -59,7 +59,8 @@ namespace ElecWasteCollection.API.Controllers
 				EndAt = request.EndAt,
 				Value = request.Value,
 				Quantity = request.Quantity,
-				PointsToRedeem = request.PointsToRedeem
+				PointsToRedeem = request.PointsToRedeem,
+				Status = request.Status
 			};
 			var result = await _voucherService.UpdateVoucher(model, voucherId);
 			if (result)
