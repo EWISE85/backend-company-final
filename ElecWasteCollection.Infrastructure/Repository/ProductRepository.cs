@@ -281,6 +281,7 @@ namespace ElecWasteCollection.Infrastructure.Repository
 				.Include(p => p.Category)
 				.Include(p => p.Brand)
 				.Include(p => p.PointTransactions)
+				.Include(p => p.SmallCollectionPoints)
 				.AsNoTracking();
 
 			query = query.Where(p => p.UserId == userId);

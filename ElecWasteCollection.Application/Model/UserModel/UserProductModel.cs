@@ -15,5 +15,7 @@ namespace ElecWasteCollection.Application.Model.UserModel
 		public string? CategoryName { get; set; }
 		public string? BrandName { get; set; }
 		public double FinalPoints { get; set; }
+
+		public string? SmallCollectionPointName { get; set; }
 	}
 }
