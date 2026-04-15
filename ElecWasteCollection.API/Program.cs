@@ -260,9 +260,6 @@ namespace ElecWasteCollection.API
             builder.Services.AddRequestTimeouts();
             var app = builder.Build();
 
-
-
-
 			app.UseCors("AllowAll");
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
 			{

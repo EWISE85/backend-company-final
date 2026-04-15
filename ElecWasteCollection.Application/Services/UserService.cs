@@ -380,7 +380,8 @@ namespace ElecWasteCollection.Application.Services
 				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<ProductStatus>(p.Status).ToString(),
 				CategoryName = p.Category?.Name,
 				BrandName = p.Brand?.Name,
-				FinalPoints = p.PointTransactions != null ? p.PointTransactions.Sum(pt => pt.Point) : 0
+				FinalPoints = p.PointTransactions != null ? p.PointTransactions.Sum(pt => pt.Point) : 0,
+				SmallCollectionPointName = p.SmallCollectionPoints?.Name
 			}).ToList();
 
 			return new PagedResultModel<UserProductModel>(mappedItems, page, limit, totalCount);
