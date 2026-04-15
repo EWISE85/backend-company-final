@@ -61,7 +61,13 @@ namespace ElecWasteCollection.Application.Services
 			{
 				await AddNewSmallCollectionPoint(smallCollectionPoints);
 				result.Messages.Add($"Thêm kho '{smallCollectionPoints.Name}' thành công.");
-				var newAdminWarehouse = new User
+
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.RADIUS_KM, "10");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.WAREHOUSE_LOAD_THRESHOLD, "0.7");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.TRANSPORT_SPEED, "35");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.SERVICE_TIME_MINUTES, "10");
+
+                var newAdminWarehouse = new User
 				{
 					UserId = Guid.NewGuid(),
 					Avatar = null,
@@ -91,7 +97,36 @@ namespace ElecWasteCollection.Application.Services
 			return result;
 		}
 
-		public async Task<bool> DeleteSmallCollectionPoint(string smallCollectionPointId)
+		private async Task UpsertPointConfigAsync(string companyId, string pointId, SystemConfigKey key, string value)
+		{
+			var existingConfig = await _unitOfWork.SystemConfig.GetAsync(x =>
+				x.Key == key.ToString() &&
+				x.SmallCollectionPointsId == pointId);
+
+			if (existingConfig != null)
+			{
+				existingConfig.Value = value;
+				_unitOfWork.SystemConfig.Update(existingConfig);
+			}
+			else
+			{
+				var newConfig = new SystemConfig
+				{
+					SystemConfigId = Guid.NewGuid(),
+					Key = key.ToString(),
+					Value = value,
+					CompanyId = companyId,
+                    SmallCollectionPointsId = pointId,
+					Status = SystemConfigStatus.DANG_HOAT_DONG.ToString(),
+					DisplayName = key.ToString(),
+					GroupName = "PointConfig"
+                };
+				await _unitOfWork.SystemConfig.AddAsync(newConfig);
+			}
+		}
+
+
+        public async Task<bool> DeleteSmallCollectionPoint(string smallCollectionPointId)
 		{
 			var smallPoint = await _smallCollectionRepository.GetAsync(s => s.SmallCollectionPointsId == smallCollectionPointId);
 			if (smallPoint == null) throw new AppException("Không tìm thấy kho",404);
