@@ -1,4 +1,5 @@
 ﻿using ElecWasteCollection.Application.Model;
+using ElecWasteCollection.Application.Model.UserModel;
 using ElecWasteCollection.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -34,5 +35,7 @@ namespace ElecWasteCollection.Application.IServices
 		Task<PagedResultModel<UserResponse>> FilterUserByRadius(string smallCollectionPointId, int page = 1, int limit = 10);
 
 		Task<bool> UpdatePointForUserByAdminSystem(Guid userId, double pointToAdd);
+		Task<PagedResultModel<UserProductModel>> GetProductsByUserIdPaginatedAsync(Guid userId, int page, int limit);
+		Task<PagedResultModel<UserVoucherModel>> GetVouchersByUserIdPaginatedAsync(Guid userId, int page, int limit);
 	}
 }

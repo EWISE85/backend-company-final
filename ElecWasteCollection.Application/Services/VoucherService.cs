@@ -203,14 +203,14 @@ namespace ElecWasteCollection.Application.Services
 			);
 		}
 
-		public async Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model)
+		public async Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model, Guid userId)
 		{
 			string? statusEnum = null;
 			if (!string.IsNullOrEmpty(model.Status))
 			{
 				statusEnum = StatusEnumHelper.GetValueFromDescription<VoucherStatus>(model.Status).ToString();
 			}
-			var (vouchers, totalCount) = await _voucherRepository.GetPagedVoucherForUser(model.Name, statusEnum, model.PageNumber, model.Limit);
+			var (vouchers, totalCount) = await _voucherRepository.GetPagedVoucherForUser(userId,model.Name, statusEnum, model.PageNumber, model.Limit);
 			var voucherModels = vouchers.Select(v => new VoucherModel
 			{
 				VoucherId = v.VoucherId,

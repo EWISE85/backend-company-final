@@ -83,8 +83,8 @@ namespace ElecWasteCollection.API.Controllers
 			return Ok(result);
 		}
 
-		[HttpGet("paged")]
-		public async Task<IActionResult> GetPagedVouchers([FromQuery] VoucherQueryRequest request)
+		[HttpGet("{userId}/paged")]
+		public async Task<IActionResult> GetPagedVouchers([FromQuery] VoucherQueryRequest request, [FromRoute] Guid userId)
 		{
 			var model = new VoucherQueryModel
 			{
@@ -93,7 +93,7 @@ namespace ElecWasteCollection.API.Controllers
 				PageNumber = request.Page,
 				Limit = request.Limit
 			};
-			var result = await _voucherService.GetPagedVouchersForUser(model);
+			var result = await _voucherService.GetPagedVouchersForUser(model, userId);
 			return Ok(result);
 		}
 		[HttpGet("admin/paged")]
