@@ -29,6 +29,7 @@ using ElecWasteCollection.Infrastructure.Repository;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -263,14 +264,18 @@ namespace ElecWasteCollection.API
 
 
 			app.UseCors("AllowAll");
-
-			// Configure the HTTP request pipeline.
-			if (app.Environment.IsDevelopment())
+			app.UseForwardedHeaders(new ForwardedHeadersOptions
 			{
-				app.UseSwagger();
-				app.UseSwaggerUI();
-			}
-            app.UseRequestTimeouts();
+				ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+			});
+
+			// Đảm bảo Swagger luôn chạy
+			app.UseSwagger();
+			app.UseSwaggerUI(c => {
+				c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ewise API V1");
+				c.RoutePrefix = "swagger";
+			});
+			app.UseRequestTimeouts();
             app.UseHttpsRedirection();
 			app.UseMiddleware<HandlingException>();
 			app.UseAuthentication();
