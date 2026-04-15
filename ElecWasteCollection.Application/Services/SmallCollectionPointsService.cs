@@ -61,7 +61,15 @@ namespace ElecWasteCollection.Application.Services
 			{
 				await AddNewSmallCollectionPoint(smallCollectionPoints);
 				result.Messages.Add($"Thêm kho '{smallCollectionPoints.Name}' thành công.");
-				var newAdminWarehouse = new User
+
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.RADIUS_KM, "10");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.MAX_ROAD_DISTANCE_KM, "15");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.TRANSPORT_SPEED, "35");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.SERVICE_TIME_MINUTES, "10");
+                await UpsertPointConfigAsync(smallCollectionPoints.CompanyId, smallCollectionPoints.SmallCollectionPointsId, SystemConfigKey.WAREHOUSE_LOAD_THRESHOLD, "0.7");
+
+
+                var newAdminWarehouse = new User
 				{
 					UserId = Guid.NewGuid(),
 					Avatar = null,
@@ -91,7 +99,46 @@ namespace ElecWasteCollection.Application.Services
 			return result;
 		}
 
-		public async Task<bool> DeleteSmallCollectionPoint(string smallCollectionPointId)
+		private async Task UpsertPointConfigAsync(string companyId, string pointId, SystemConfigKey key, string value)
+		{
+			var existingConfig = await _unitOfWork.SystemConfig.GetAsync(x =>
+				x.Key == key.ToString() &&
+				x.SmallCollectionPointsId == pointId);
+
+			if (existingConfig != null)
+			{
+				existingConfig.Value = value;
+				_unitOfWork.SystemConfig.Update(existingConfig);
+			}
+			else
+			{
+                string displayName = key switch
+                {
+                    SystemConfigKey.RADIUS_KM => "Bán kính thu gom",
+                    SystemConfigKey.MAX_ROAD_DISTANCE_KM => "Khoảng cách di chuyển tối đa (km)",
+                    SystemConfigKey.TRANSPORT_SPEED => "Tốc độ di chuyển (km/h)",
+                    SystemConfigKey.SERVICE_TIME_MINUTES => "Thời gian phục vụ tại điểm (phút)",
+                    SystemConfigKey.WAREHOUSE_LOAD_THRESHOLD => "Ngưỡng tải trọng kho hàng",
+                    _ => key.ToString() 
+                };
+
+                var newConfig = new SystemConfig
+				{
+					SystemConfigId = Guid.NewGuid(),
+					Key = key.ToString(),
+					Value = value,
+					CompanyId = companyId,
+                    SmallCollectionPointsId = pointId,
+					Status = SystemConfigStatus.DANG_HOAT_DONG.ToString(),
+					DisplayName = displayName,
+					GroupName = "PointConfig"
+                };
+				await _unitOfWork.SystemConfig.AddAsync(newConfig);
+			}
+		}
+
+
+        public async Task<bool> DeleteSmallCollectionPoint(string smallCollectionPointId)
 		{
 			var smallPoint = await _smallCollectionRepository.GetAsync(s => s.SmallCollectionPointsId == smallCollectionPointId);
 			if (smallPoint == null) throw new AppException("Không tìm thấy kho",404);
