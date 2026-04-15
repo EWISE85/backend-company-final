@@ -9,5 +9,7 @@ namespace ElecWasteCollection.Domain.IRepository
 {
 	public interface IUserVoucherRepository : IGenericRepository<UserVoucher>
 	{
+		Task<(List<(UserVoucher UV, double PointsUsed)> Items, int TotalCount)> GetUserVouchersPaginatedAsync(Guid userId, int page, int limit);
+
 	}
 }

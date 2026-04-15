@@ -143,5 +143,33 @@ namespace ElecWasteCollection.API.Controllers
 			return Ok(new { message = "Points updated successfully for user." });
 		}
 
+		[HttpGet("{userId}/items")]
+		public async Task<IActionResult> GetUserItemsPaginated(
+			Guid userId,
+			[FromQuery] string type,
+			[FromQuery] int page = 1,
+			[FromQuery] int limit = 10)
+		{
+			if (page < 1) page = 1;
+			if (limit < 1) limit = 10;
+			if (limit > 100) limit = 100; 
+			if (string.IsNullOrEmpty(type))
+			{
+				return BadRequest("Vui lòng truyền tham số 'type' (product hoặc voucher).");
+			}
+
+			switch (type.ToLower())
+			{
+				case "product":
+					var products = await _userService.GetProductsByUserIdPaginatedAsync(userId, page, limit);
+					return Ok(products);
+				case "voucher":
+					var vouchers = await _userService.GetVouchersByUserIdPaginatedAsync(userId, page, limit);
+					return Ok(vouchers);
+
+				default:
+					return BadRequest("Type không hợp lệ. Chỉ chấp nhận 'product' hoặc 'voucher'.");
+			}
 		}
+	}
 }

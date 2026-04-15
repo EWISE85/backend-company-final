@@ -68,7 +68,12 @@ namespace ElecWasteCollection.Infrastructure.Repository
 			return (items, totalCount);
 		}
 
-		public async Task<(List<Voucher> Items, int TotalCount)> GetPagedVoucherForUser(string? name, string? status, int page, int limit)
+		public async Task<(List<Voucher> Items, int TotalCount)> GetPagedVoucherForUser(
+	Guid userId,
+	string? name,
+	string? status,
+	int page,
+	int limit)
 		{
 			var query = _dbSet.AsNoTracking();
 
@@ -76,6 +81,7 @@ namespace ElecWasteCollection.Infrastructure.Repository
 			{
 				query = query.Where(v => v.Name.Contains(name));
 			}
+
 			if (!string.IsNullOrWhiteSpace(status))
 			{
 				query = query.Where(v => v.Status == status);
@@ -83,10 +89,12 @@ namespace ElecWasteCollection.Infrastructure.Repository
 
 			query = query.Where(v => v.Quantity > 0);
 
+			query = query.Where(v => !v.UserVouchers.Any(uv => uv.UserId == userId));
+
 			var totalCount = await query.CountAsync();
 
 			var items = await query
-				.OrderByDescending(v => v.VoucherId) 
+				.OrderByDescending(v => v.StartAt)
 				.Skip((page - 1) * limit)
 				.Take(limit)
 				.ToListAsync();

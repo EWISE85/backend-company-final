@@ -2,6 +2,7 @@
 using ElecWasteCollection.Application.Helper;
 using ElecWasteCollection.Application.IServices;
 using ElecWasteCollection.Application.Model;
+using ElecWasteCollection.Application.Model.UserModel;
 using ElecWasteCollection.Domain.Entities;
 using ElecWasteCollection.Domain.IRepository;
 using System;
@@ -20,15 +21,18 @@ namespace ElecWasteCollection.Application.Services
 		private readonly ITokenService _tokenService;
 		private readonly IUserRepository _userRepository;
 		private readonly IUnitOfWork _unitOfWork;
-	
+		private readonly IProductRepository _productRepository;
+		private readonly IUserVoucherRepository _userVoucherRepository;
 
-		public UserService(IFirebaseService firebaseService, ITokenService tokenService, IUserRepository userRepository, IUnitOfWork unitOfWork)
+
+		public UserService(IFirebaseService firebaseService, ITokenService tokenService, IUserRepository userRepository, IUnitOfWork unitOfWork, IProductRepository productRepository, IUserVoucherRepository userVoucherRepository)
 		{
 			_firebaseService = firebaseService;
 			_tokenService = tokenService;
 			_userRepository = userRepository;
 			_unitOfWork = unitOfWork;
-
+			_productRepository = productRepository;
+			_userVoucherRepository = userVoucherRepository;
 		}
 
 		public async Task<List<UserResponse>> GetAll()
@@ -362,6 +366,43 @@ namespace ElecWasteCollection.Application.Services
 			_unitOfWork.Users.Update(user);
 			await _unitOfWork.SaveAsync();
 			return true;
+		}
+
+		public async Task<PagedResultModel<UserProductModel>> GetProductsByUserIdPaginatedAsync(Guid userId, int page, int limit)
+		{
+			var (items, totalCount) = await _productRepository.GetUserProductsPaginatedAsync(userId, page, limit);
+
+			var mappedItems = items.Select(p => new UserProductModel
+			{
+				ProductId = p.ProductId,
+				Description = p.Description,
+				CreateAt = p.CreateAt,
+				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<ProductStatus>(p.Status).ToString(),
+				CategoryName = p.Category?.Name,
+				BrandName = p.Brand?.Name,
+				FinalPoints = p.PointTransactions != null ? p.PointTransactions.Sum(pt => pt.Point) : 0
+			}).ToList();
+
+			return new PagedResultModel<UserProductModel>(mappedItems, page, limit, totalCount);
+		}
+		public async Task<PagedResultModel<UserVoucherModel>> GetVouchersByUserIdPaginatedAsync(Guid userId, int page, int limit)
+		{
+			var (items, totalCount) = await _userVoucherRepository.GetUserVouchersPaginatedAsync(userId, page, limit);
+
+			// Map dữ liệu sang Model
+			var mappedItems = items.Select(item => new UserVoucherModel
+			{
+				UserVoucherId = item.UV.UserVoucherId,
+				VoucherId = item.UV.VoucherId,
+				Code = item.UV.Voucher?.Code,
+				Name = item.UV.Voucher?.Name,
+				ImageUrl = item.UV.Voucher?.ImageUrl,
+				ReceivedAt = item.UV.ReceivedAt,
+
+				PointsToRedeem = item.PointsUsed
+			}).ToList();
+
+			return new PagedResultModel<UserVoucherModel>(mappedItems, page, limit, totalCount);
 		}
 	}
 }

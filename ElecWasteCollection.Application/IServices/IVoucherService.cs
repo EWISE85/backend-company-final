@@ -11,7 +11,7 @@ namespace ElecWasteCollection.Application.IServices
     public interface  IVoucherService
     {
         Task<PagedResultModel<VoucherModel>> GetPagedVouchers(VoucherQueryModel model);
-		Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model);
+		Task<PagedResultModel<VoucherModel>> GetPagedVouchersForUser(VoucherQueryModel model, Guid userId);
 
 		Task<bool> CreateVoucher(CreateVoucherModel model);
 
