@@ -2,6 +2,7 @@
 using ElecWasteCollection.Domain.Entities;
 using ElecWasteCollection.Domain.IRepository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,12 +20,12 @@ namespace ElecWasteCollection.Infrastructure.Repository
 		public async Task<(List<User> Users, int TotalCount)> AdminFilterUser(int page, int limit, DateOnly? fromDate, DateOnly? toDate, string? email, string? status)
 		{
 			var query = _dbSet.AsNoTracking();
-
-			// --- 1. Áp dụng các bộ lọc (Filter) ---
+			Guid parsedId;
+			bool isGuid = Guid.TryParse(email, out parsedId);
 			if (!string.IsNullOrEmpty(email))
 			{
 				var searchEmail = email.Trim();
-				query = query.Where(u => u.Email != null && u.Email.Contains(searchEmail));
+				query = query.Where(u => u.Email != null && u.Email.Contains(searchEmail) || u.Phone.Contains(searchEmail) || (isGuid && u.UserId == parsedId));
 			}
 
 			if (!string.IsNullOrEmpty(status))
