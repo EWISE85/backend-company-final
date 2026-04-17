@@ -189,8 +189,17 @@ namespace ElecWasteCollection.Application.Services
 
 		public async Task<UserResponse?> GetByEmailOrPhone(string infomation)
 		{
-			var user = await _userRepository.GetAsync(u => u.Email == infomation || u.Phone == infomation);
+			Guid parsedId;
+			bool isGuid = Guid.TryParse(infomation, out parsedId);
+
+			var user = await _userRepository.GetAsync(u =>
+				u.Email == infomation ||
+				u.Phone == infomation ||
+				(isGuid && u.UserId == parsedId)
+			);
+
 			if (user == null) throw new AppException("User không tồn tại", 404);
+
 			var userResponse = new UserResponse
 			{
 				UserId = user.UserId,
@@ -203,8 +212,8 @@ namespace ElecWasteCollection.Application.Services
 				SmallCollectionPointId = user.SmallCollectionPointsId,
 				Status = StatusEnumHelper.ConvertDbCodeToVietnameseName<UserStatus>(user.Status).ToString()
 			};
-			return userResponse;
 
+			return userResponse;
 		}
 
 		public async Task<List<UserResponse>> GetByEmail(string email)
