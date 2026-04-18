@@ -24,7 +24,8 @@ namespace ElecWasteCollection.API.Controllers
 			{
 				UserId = registerDeviceModel.UserId,
 				FcmToken = registerDeviceModel.FcmToken,
-				Platform = registerDeviceModel.Platform
+				Platform = registerDeviceModel.Platform,
+				VoipToken = registerDeviceModel.VoipToken
 			};
 			var result = await _userDeviceTokenService.RegisterDeviceAsync(model);
 			if (result)

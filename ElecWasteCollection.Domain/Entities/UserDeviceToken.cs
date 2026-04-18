@@ -13,14 +13,16 @@ namespace ElecWasteCollection.Domain.Entities
 	}
 
 	public class UserDeviceToken
-    {
-        public Guid UserDeviceTokenId { get; set; }
+	{
+		public Guid UserDeviceTokenId { get; set; }
 
 		public Guid UserId { get; set; }
 
-		public string FCMToken { get; set; }
+		public string? FCMToken { get; set; }
 
-		public string Platform { get; set; } 
+		public string? VoipToken { get; set; }
+
+		public string Platform { get; set; }
 
 		public DateTime CreatedAt { get; set; }
 
