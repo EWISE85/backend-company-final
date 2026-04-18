@@ -20,10 +20,13 @@ using ElecWasteCollection.Infrastructure.Configuration;
 using ElecWasteCollection.Infrastructure.Context;
 using ElecWasteCollection.Infrastructure.ExternalService;
 using ElecWasteCollection.Infrastructure.ExternalService.Apple;
+using ElecWasteCollection.Infrastructure.ExternalService.CallApp;
 using ElecWasteCollection.Infrastructure.ExternalService.Cloudinary;
 using ElecWasteCollection.Infrastructure.ExternalService.Email;
 using ElecWasteCollection.Infrastructure.ExternalService.Imagga;
 using ElecWasteCollection.Infrastructure.ExternalService.Mapbox;
+using ElecWasteCollection.Infrastructure.ExternalService.Redis;
+using ElecWasteCollection.Infrastructure.Hubs;
 using ElecWasteCollection.Infrastructure.Implementations;
 using ElecWasteCollection.Infrastructure.Repository;
 using FirebaseAdmin;
@@ -33,6 +36,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using System.Text;
 
 namespace ElecWasteCollection.API
@@ -43,8 +47,34 @@ namespace ElecWasteCollection.API
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
-			builder.Services.AddSignalR();
+			var redisSection = builder.Configuration.GetSection("RedisConfig");
+			var redisHost = redisSection["Host"];
+			var redisPort = redisSection["Port"];
+			var redisPassword = redisSection["Password"];
+			var redisDatabase = redisSection["Database"];
+
+			var redisConfig = new ConfigurationOptions
+			{
+				EndPoints = { $"{redisHost}:{redisPort}" },
+				Password = redisPassword,
+				DefaultDatabase = !string.IsNullOrEmpty(redisDatabase) ? int.Parse(redisDatabase) : 0,
+				AbortOnConnectFail = false,
+				ConnectRetry = 3,
+				ConnectTimeout = 5000,
+				Ssl = false
+			};
+
+			// Add connection multiplexer (Dùng cho ConnectionManager)
+			var redisConnection = ConnectionMultiplexer.Connect(redisConfig);
+			builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+
+			// Cấu hình SignalR sử dụng Redis làm Backplane
+			builder.Services.AddSignalR()
+				.AddStackExchangeRedis(o =>
+				{
+					o.Configuration = redisConfig;
+					o.Configuration.ChannelPrefix = "EwiseApp";
+				});
 			builder.Services.AddControllers()
 				.AddJsonOptions(options =>
 				{
@@ -202,7 +232,11 @@ namespace ElecWasteCollection.API
 			builder.Services.AddScoped<IAttributeService, AttributeService>();
             builder.Services.AddScoped<ICollectionOffDayService, CollectionOffDayService>();
 			builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
-            builder.Services.AddMemoryCache();
+			builder.Services.AddSingleton<IConnectionManager, RedisConnectionManager>();
+			builder.Services.AddSingleton<IApnsService, ApnsVoipService>();
+			builder.Services.AddScoped<CallService>();
+			builder.Services.AddScoped<ICallNotificationService, SignalRNotificationService>();
+			builder.Services.AddMemoryCache();
 			builder.Services.AddHostedService<VoucherExpirationWorker>();
 
 			builder.Services.AddCors(options =>
@@ -258,28 +292,28 @@ namespace ElecWasteCollection.API
 				};
 			});
             builder.Services.AddRequestTimeouts();
-            var app = builder.Build();
+			var app = builder.Build();
+
+
+
 
 			app.UseCors("AllowAll");
-			app.UseForwardedHeaders(new ForwardedHeadersOptions
-			{
-				ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-			});
 
-			// Đảm bảo Swagger luôn chạy
-			app.UseSwagger();
-			app.UseSwaggerUI(c => {
-				c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ewise API V1");
-				c.RoutePrefix = "swagger";
-			});
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
+			{
+				app.UseSwagger();
+				app.UseSwaggerUI();
+			}
 			app.UseRequestTimeouts();
-            app.UseHttpsRedirection();
+			app.UseHttpsRedirection();
 			app.UseMiddleware<HandlingException>();
 			app.UseAuthentication();
 			app.UseMiddleware<ActiveSessionMiddleware>();
 			app.UseAuthorization();
 
 			app.MapHub<ShippingHub>("/shippingHub");
+			app.MapHub<CallHub>("/hubs/call");
 			app.MapHub<WebNotificationHub>("/notificationHub");
 			app.MapControllers();
 
