@@ -99,11 +99,17 @@ namespace ElecWasteCollection.API.Controllers
 		[HttpGet("server-time")]
 		public IActionResult GetServerTime()
 		{
+			TimeSpan vnOffset = TimeSpan.FromHours(7);
+
+			DateTimeOffset serverTime = DateTimeOffset.UtcNow.ToOffset(vnOffset);
+
+			// 3. Trả về kết quả
 			return Ok(new
 			{
-				serverTime = DateTime.Now,
-				serverDate = DateOnly.FromDateTime(DateTime.Now)
+				serverTime = serverTime.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+				serverDate = DateOnly.FromDateTime(serverTime.DateTime)
 			});
+			
 		}
 
         [HttpGet("speed")]
