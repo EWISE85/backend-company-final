@@ -27,11 +27,17 @@ namespace ElecWasteCollection.API.Controllers
 		public async Task<IActionResult> GetRoutesByCollectorId([FromRoute] DateOnly pickUpDate, [FromRoute] Guid id)
 		{
 			var routes = await _collectionRouteService.GetRoutesByCollectorId(pickUpDate, id);
+
+			TimeSpan vnOffset = TimeSpan.FromHours(7);
+
+			DateTimeOffset serverTime = DateTimeOffset.UtcNow.ToOffset(vnOffset);
+
+			// 3. Trả về kết quả
 			return Ok(new
 			{
 				data = routes,
-				serverTime = DateTime.Now,
-				serverDate = DateOnly.FromDateTime(DateTime.Now)
+				serverTime = serverTime.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+				serverDate = DateOnly.FromDateTime(serverTime.DateTime)
 			});
 		}
 		[HttpGet("collection-point/date/filter")]
